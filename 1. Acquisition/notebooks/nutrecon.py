@@ -28,7 +28,7 @@ def test():
 
 class Vars:
   experiment_code = 'nutre'
-  dataPath = root_[:-1] + "/2. Data/raw/nutrecon/"
+  dataPath = root_[:-1] + "/2. demoData/raw/nutrecon/"
   sequences_dataPath = dataPath + 'sequences/'
   responses_dataPath = dataPath + 'responses/'
 
