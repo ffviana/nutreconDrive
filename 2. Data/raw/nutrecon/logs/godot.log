@@ -1,0 +1,6 @@
+Godot Engine v3.4.1.stable.official.aa1b95889 - https://godotengine.org
+OpenGL ES 3.0 Renderer: Intel(R) Iris(TM) Pro Graphics 5200
+OpenGL ES Batching: ON
+ 
+ERROR: Error opening file 'res://icon.png'.
+   at: load_image (core/io/image_loader.cpp:55) - Error opening file 'res://icon.png'.
