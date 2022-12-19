@@ -3,10 +3,13 @@ try:
   from google.colab import drive
   drive.mount('/content/drive/')
   shared_drive_foldername = 'NUTRECON'
-  root = '/content/drive/Shareddrives/{}/*'.format(shared_drive_foldername)
+  root = '/content/drive/Shareddrives/{}/'.format(shared_drive_foldername)
+  dataPath_ = root + '/2. Data/raw/nutrecon/'
   print('Running Code in Colab')
 except:
   root = 'D:/FV/Projects/NUTRECON/nutreconDrive/'
+  dataPath_ = "D:/FV/Projects/NUTRECON/Data/nutrecon/"
+  # dataPath = root + "2. demoData/raw/nutrecon/"
   print('Running Code locally')
 
 root_ = root + '*'
@@ -27,8 +30,7 @@ def test():
   print(root)
 
 class Vars:
-  dataPath = "D:/FV/Projects/NUTRECON/Data/nutrecon/"
-  # dataPath = root + "2. demoData/raw/nutrecon/"
+  dataPath = dataPath_
   sequences_dataPath = dataPath + 'sequences/'
   responses_dataPath = dataPath + 'responses/'
   if 'demo' in dataPath:
