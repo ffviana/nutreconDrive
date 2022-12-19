@@ -27,10 +27,15 @@ def test():
   print(root)
 
 class Vars:
-  experiment_code = 'nutre'
-  dataPath = root_[:-1] + "/2. demoData/raw/nutrecon/"
+  dataPath = "D:/FV/Projects/NUTRECON/Data/nutrecon/"
+  # dataPath = root + "2. demoData/raw/nutrecon/"
   sequences_dataPath = dataPath + 'sequences/'
   responses_dataPath = dataPath + 'responses/'
+  if 'demo' in dataPath:
+    experiment_code = 'exampleSub'
+  else:
+    experiment_code = 'nutre'
+  
 
   flavorCodes = {
       'blueberry' : 'g',
@@ -57,15 +62,20 @@ class Vars:
                   5: 'Image VI'
                   }
 
-  pres_order_fileID = 'day1_presOrder'
+  
   pres_order_colName = 'Presentation Order'
   flavorName_colName = 'Flavor'
   flavorID_colName = 'flavor_id'
 
+  orders_id = '_presOrder'
+  pres_order_fileID = 'day1_presOrder'
   pres_order_d2_fileID = 'day2_presOrder'
   pres_order_d3_fileID = 'day3_presOrder'
 
+  ratings_id = '_rating'
   flav_ratings_fileID = 'day1_rating'
+  flav_ratings_d2_fileID = 'day2_rating'
+  flav_ratings_d3_fileID = 'day3_rating'
 
   intensity_colName = 'intensity'
   novelty_colName = 'novelty'
@@ -77,12 +87,15 @@ class Vars:
   imageID_colName = 'image_id'
 
   assocTestOrder1_colName = 'Day 1 - Association Test order'
+  assoc1_fileID = 'day1_atest'
   assoc1_order_fileID = 'day1_atestOrder'
 
   assocTestOrder2_colName = 'Day 2 - Association Test order'
+  assoc2_fileID = 'day2_atest'
   assoc2_order_fileID = 'day2_atestOrder'
 
   assocTestOrder3_colName = 'Day 3 - Association Test order'
+  assoc3_fileID = 'day3_atest'
   assoc3_order_fileID = 'day3_atestOrder'
 
   neuroEconOrder1_fileID = 'day2_neuroEconOrder'
@@ -92,6 +105,13 @@ class Vars:
   conditioning_order_colName = 'Conditioning Order'
 
   neuroEcon_id = '_neuroEcon'
+  neuroEcon_d2_responses_fileID = 'day2_neuroEcon'
+  neuroEcon_d3_responses_fileID = 'day3_neuroEcon'
+
+  neurEconRealization_d2_fileID = 'day2_neurEconRealization'
+  neurEconRealization_d3_fileID = 'day3_neurEconRealization'
+
+
 
 
 
@@ -213,7 +233,7 @@ def check_atest(report, flavorImage_code, min_correctResp = 4):
   report_df = report_df.sort_values(by=['criteria', 'f1-score'], ascending = False)
   
   report_df = report_df.rename_axis(_v_.imageID_colName).reset_index()
-  report_df[_v_.flavorName_colName] = report_df[_v_.imageID_colName].replace(_v_.flavorImage_code)
+  report_df[_v_.flavorName_colName] = report_df[_v_.imageID_colName].replace(flavorImage_code)
   report_df[_v_.flavorID_colName] = report_df[_v_.flavorName_colName].replace(_v_.flavorCodes)
   
   report_df = report_df.set_index(['criteria', _v_.imageID_colName, _v_.flavorID_colName]).drop(columns = 'support')
