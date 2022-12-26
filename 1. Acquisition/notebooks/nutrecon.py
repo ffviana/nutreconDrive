@@ -30,9 +30,11 @@ def test():
   print(root)
 
 class Vars:
+  
   dataPath = dataPath_
   sequences_dataPath = dataPath + 'sequences/'
   responses_dataPath = dataPath + 'responses/'
+  yogurtPrep_path = root + '0. Yogurt Preparation/yogurt prep.xlsx'
   if 'demo' in dataPath:
     experiment_code = 'exampleSub'
   else:
