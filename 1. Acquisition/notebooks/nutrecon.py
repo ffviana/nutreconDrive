@@ -281,7 +281,8 @@ def check_atest(report, flavorImage_code, min_correctResp = 4):
 # The two following functions (generate_NeuroeconomicsTrials and realizeChoices) are only used in the Acquisition Notebooks
 # Maybe they should be implemented in a separate script
 
-def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section_fileID, data_path, df_pleas, flavorImage_code, flavors = None,  n_Lott_reps = 6):
+def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section_fileID, data_path, df_pleas, flavorImage_code, flavors = None,  n_Lott_reps = 6, mixed_blocks = False):
+
   '''
   This function generates all the trials of one session of the neuroeconomics task.     
   '''
@@ -328,11 +329,21 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
     blocks = []
     # each lotery option is repeated 6 times (in the whole task)
     n_Lott_reps = 6
+    if mixed_blocks:
+      mixed_blocks_df = pd.concat([same_df, mixed_df]).sample(frac = 1).reset_index(drop=True)
+      split_df = np.array_split(mixed_blocks_df, 2)
+      first_df = split_df[0]
+      second_df = split_df[1]
+    else:
+      first_df = same_df.copy()
+      second_df = mixed_df.copy()
     for p in range(n_Lott_reps):
-      blocks += [same_df.sample(frac = 1).values.tolist()]
-      blocks += [mixed_df.sample(frac = 1).values.tolist()]
+      blocks += [first_df.sample(frac = 1).values.tolist()]
+      blocks += [second_df.sample(frac = 1).values.tolist()]
 
-    shuffle(blocks) # shuffle blocks in list
+    if not mixed_blocks:
+      shuffle(blocks)  # shuffle blocks in list
+    
     df_final = pd.DataFrame()  # new empty dataframe
     block = 0
     for b in blocks: # each block 
