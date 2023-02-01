@@ -102,6 +102,7 @@ class Vars:
   assoc3_fileID = 'day3_atest'
   assoc3_order_fileID = 'day3_atestOrder'
 
+  neuroEconOrder0_fileID = 'day1_neuroEconOrder'
   neuroEconOrder1_fileID = 'day2_neuroEconOrder'
   neuroEconOrder2_fileID = 'day3_neuroEconOrder'
   
@@ -109,9 +110,11 @@ class Vars:
   conditioning_order_colName = 'Conditioning Order'
 
   neuroEcon_id = '_neuroEcon'
+  neuroEcon_d1_responses_fileID = 'day1_neuroEcon'
   neuroEcon_d2_responses_fileID = 'day2_neuroEcon'
   neuroEcon_d3_responses_fileID = 'day3_neuroEcon'
 
+  neurEconRealization_d1_fileID = 'day1_neurEconRealization'
   neurEconRealization_d2_fileID = 'day2_neurEconRealization'
   neurEconRealization_d3_fileID = 'day3_neurEconRealization'
 
