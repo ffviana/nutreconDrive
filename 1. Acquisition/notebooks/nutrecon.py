@@ -5,7 +5,7 @@ try:
   shared_drive_foldername = 'NUTRECON'
   root = '/content/drive/Shareddrives/{}/'.format(shared_drive_foldername)
   dataPath_ = root + '/2. Data/raw/nutrecon/'
-  # dataPath_ = "D:/FV/Projects/NUTRECON/Data/nutrecon_psych/"
+  # dataPath_ = = root + '/2. Data/raw/nutrecon_psych/'
   print('Running Code in Colab')
 except:
   root = 'D:/FV/Projects/NUTRECON/nutreconDrive/'
