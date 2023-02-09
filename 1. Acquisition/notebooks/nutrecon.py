@@ -1,3 +1,5 @@
+# this script bundles data and functionality by defining a new object containing all possible variables 
+# from the nutrecon experiment, as well as implementation of necessary functions (for single subjetc analysis, as well as )
 
 try:
   from google.colab import drive
@@ -8,12 +10,15 @@ try:
   # dataPath_ = = root + '/2. Data/raw/nutrecon_psych/'
   print('Running Code in Colab')
 except:
-  root = 'D:/FV/Projects/NUTRECON/nutreconDrive/'
-  dataPath_ = "D:/FV/Projects/NUTRECON/Data/nutrecon/"
-  # dataPath = root + "2. demoData/raw/nutrecon/"
+  # set the root as the path where the Git Project wsa saved
+  root = "C:/Users/DiogoMelo/nutreconDrive/"
+  # demo data can be found in the following subfolder
+  dataPath_ = root + "2. demoData/raw/nutrecon/"
   print('Running Code locally')
 
 root_ = root + '*'
+
+#import necessary packages
 import numpy as np
 from glob import glob
 from datetime import datetime
@@ -30,18 +35,25 @@ import seaborn as sns
 def test():
   print(root)
 
+# create a class contaning the attributes necessary for single subject analysis
 class Vars:
   
   dataPath = dataPath_
   sequences_dataPath = dataPath + 'sequences/'
   responses_dataPath = dataPath + 'responses/'
+<<<<<<< HEAD
   yogurtPrep_path = root + '0. Yogurt Preparation/yogurt prep.xlsx'
   if 'demo' in dataPath:
     experiment_code = 'exampleSub'
   else:
     experiment_code = 'nutre'
   
+=======
+  experiment_code_responses = 'exampleSub'
+  experiment_code_sequences = 'nutre'
+>>>>>>> Diogo_MELO_dev
 
+  # dictionary containing a code for all the flavors tested
   flavorCodes = {
       'blueberry' : 'g',
       'cashew' : 'c', 
@@ -53,12 +65,14 @@ class Vars:
       'pomegranate': 'e' 
     }
 
+  # dictionary containing the correspondance between image number and shape
   imageCodes = {
       'Image I' : 'square',
       'Image II' : 'hexagon',
       'Image V' : 'circle',
       'Image VI' : 'cross'}
 
+  # dictionary with index - image number correspondance
   imageDecoder = {0: 'Image I',
                   1: 'Image II',
                   #2: 'Image III',
@@ -67,7 +81,7 @@ class Vars:
                   5: 'Image VI'
                   }
 
-  
+  # file identifiers and column names for dataframes
   pres_order_colName = 'Presentation Order'
   flavorName_colName = 'Flavor'
   flavorID_colName = 'flavor_id'
@@ -103,28 +117,32 @@ class Vars:
   assoc3_fileID = 'day3_atest'
   assoc3_order_fileID = 'day3_atestOrder'
 
+<<<<<<< HEAD
   neuroEconOrder0_fileID = 'day1_neuroEconOrder'
+=======
+  # files containing the order of the trials in the neuroeconomics task performed at day 2 and 3
+>>>>>>> Diogo_MELO_dev
   neuroEconOrder1_fileID = 'day2_neuroEconOrder'
   neuroEconOrder2_fileID = 'day3_neuroEconOrder'
   
   conditioning_order_fileID = 'condOrder'
   conditioning_order_colName = 'Conditioning Order'
 
+  # files containing the users' responses to the neuroeconomics task
   neuroEcon_id = '_neuroEcon'
   neuroEcon_d1_responses_fileID = 'day1_neuroEcon'
   neuroEcon_d2_responses_fileID = 'day2_neuroEcon'
   neuroEcon_d3_responses_fileID = 'day3_neuroEcon'
 
+<<<<<<< HEAD
   neurEconRealization_d1_fileID = 'day1_neurEconRealization'
+=======
+  # trials that were actually realized after the task was completed
+>>>>>>> Diogo_MELO_dev
   neurEconRealization_d2_fileID = 'day2_neurEconRealization'
   neurEconRealization_d3_fileID = 'day3_neurEconRealization'
 
-
-
-
-
 _v_ =  Vars()
-
 
 def get_key(my_dict, val):
     for key, value in my_dict.items():
@@ -134,9 +152,19 @@ def get_key(my_dict, val):
     return "key doesn't exist"
 
 def strTimestamp():
+  '''
+  This function returns the timestamp of an event as a string (may be the subject's reaction, stimulus presentation, etc).
+  '''
   return str(datetime.now().timestamp()).split('.')[0]
 
 def check_MatchingPattern(data_path, subject_code, section_fileID, ext = '.json'):
+  '''
+  This function checks the existance of files whose names are defined by a combination of different 
+  attributes, including the subject code, selection_fileID, extension of the file, as well as the path
+  where the file should be searched for.
+
+  It returns the files that match the pattern, as well as a bool informing if files were found or not.
+  '''
   fileMatchingPattern = glob('{}{}*{}*{}'.format(data_path, subject_code, section_fileID, ext))
   if len(fileMatchingPattern) != 0:
     ans = True
@@ -145,6 +173,12 @@ def check_MatchingPattern(data_path, subject_code, section_fileID, ext = '.json'
   return fileMatchingPattern, ans
 
 def save_json(df, subject_code, section_fileID, data_path):
+  '''
+  This function gets a dataframe and parameters for file search as inputs, and then searches for the existance
+  of a specific file that matches the input parameters. Afterwards, the check_MatchingPattern function is called
+  to check the existance of a json file. If the file exists, the user is informed of the timestamp of file creation, 
+  otherwise, a new json file is created and the dataframe is returned.
+  '''
   fpath = '{}{}_{}_{}.json'.format(data_path, subject_code, section_fileID, strTimestamp())
   fileMatchingPattern = glob('{}{}*{}*.json'.format(data_path, subject_code, section_fileID))
   
@@ -167,6 +201,9 @@ def save_json(df, subject_code, section_fileID, data_path):
   return df
 
 def loadResponses(folder, file_identifier, Subject_code):
+  '''
+  This function searches for a 'responses' file and, in case it exists, loads the user's responses as a dataframe.   
+  '''
   files, _ = check_MatchingPattern(folder, Subject_code, file_identifier)
   if _:
     if len(files) > 1:
@@ -190,7 +227,11 @@ def loadResponses(folder, file_identifier, Subject_code):
   return df, fpath
 
 def reportAndConfusionMatrix(Sequence, Answers, flavorImage_code):
-
+  '''
+  This function compares the sequence of flavours, as well as the user's answers and builds a Confusion Matrix with the user's answers.
+  
+  It returns the Confusion Matrix as a Figure, as well as a report showing the user's accuracy.
+  '''
   targetNames = [_v_.imageDecoder[p] for p in list(set(Sequence + Answers))]
 
   report = classification_report(Sequence, Answers, 
@@ -208,11 +249,13 @@ def reportAndConfusionMatrix(Sequence, Answers, flavorImage_code):
   image_labels = _v_.imageDecoder.values()
   flavor_labels = [flavorImage_code[p] for p in image_labels]
 
+  # build the figure with the confusion matrix
   fig, ax = plt.subplots(figsize=(5.5, 5.5), dpi=90)
   mat = confusion_matrix(Sequence, Answers, labels = list(_v_.imageDecoder.keys()))
   sns.heatmap(mat.T, square=True, annot=True, fmt='d', cbar=False, ax = ax)
   rect = Rectangle((.5,0),np.sqrt(2*3.5**2),np.sqrt(2)/2, ec='green', lw = 4, fc = 'none', angle = 45)
 
+  # configure plot (add labels, adapt x and y axis as desired and add a rectangular patch)
   ax.tick_params( direction = 'inout' )
   ax.set_xlabel('Correct Image')
   ax.set_ylabel('Subject Choice')
@@ -235,6 +278,11 @@ def reportAndConfusionMatrix(Sequence, Answers, flavorImage_code):
   return fig, report
 
 def check_atest(report, flavorImage_code, min_correctResp = 4):
+  '''
+  This function allows the user to check the results of the association test as a dataframe.
+
+  It informs the user if criteria for selection of the flavour pair being teste is met (in compliance).
+  '''
   report_df = pd.DataFrame.from_dict(report).T
   report_df = report_df[report_df.index.str.contains('Image')]
   report_df['criteria'] = np.where(report_df['precision'] >= min_correctResp / report_df['support'], 'in compliance', 'not in compliance' )
@@ -246,16 +294,33 @@ def check_atest(report, flavorImage_code, min_correctResp = 4):
   
   report_df = report_df.set_index(['criteria', _v_.imageID_colName, _v_.flavorID_colName]).drop(columns = 'support')
   report_df = pd.concat([report_df[~report_df.index.get_level_values(0).str.contains('not')], report_df[report_df.index.get_level_values(0).str.contains('not')]])
+  
   return report_df
+
+<<<<<<< HEAD
+def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section_fileID, data_path, df_pleas, flavorImage_code, flavors = None,  n_Lott_reps = 6, mixed_blocks = False):
+=======
+
+# The two following functions (generate_NeuroeconomicsTrials and realizeChoices) are only used in the Acquisition Notebooks
+# Maybe they should be implemented in a separate script
 
 def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section_fileID, data_path, df_pleas, flavorImage_code, flavors = None,  n_Lott_reps = 6, mixed_blocks = False):
 
+  '''
+  This function generates all the trials of one session of the neuroeconomics task.     
+  '''
+>>>>>>> Diogo_MELO_dev
+
   fpath = '{}{}_{}_{}.json'.format(data_path, Subject_code, section_fileID, strTimestamp())
   fileMatchingPattern = glob('{}{}*{}*.json'.format(data_path, Subject_code, section_fileID))
+  # if the file exists...
   if check_MatchingPattern(data_path, Subject_code, section_fileID)[1]:
+    # get the timestamp of file creation from the file name and provide the user that information
     timestamp = float(fileMatchingPattern[0][:-5].split('_')[-1])
     print('File already exists. Created on {}'.format(datetime.fromtimestamp(timestamp)))
+    # open the json file as a dataframe
     df_final = pd.read_json(fileMatchingPattern[0], orient = 'index')
+    # check the reference and lottery flavours in the dataframe
     cPlus_flavor = df_final[df_final['Trial Type'] == 'mixed_yogurt'].iloc[0]['reference flavor']
     cMinus_flavor = df_final[df_final['Trial Type'] == 'mixed_yogurt'].iloc[0]['lottery flavor']
   else:
@@ -269,6 +334,7 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
 
     df = pd.DataFrame(conditions, columns = ['Trial Type', 'reference type','reference qt','reference p', 'lottery type', 'lottery qt','lottery p'])
 
+    # different combinations for mixed type trials involving the C+ and C- flavours (low/med/high quantity and probability)
     df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 40, .75, 'C-', 40, 0.75]   # Low-High / Low-High
     df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 120, .13, 'C-', 120, .13]  # High-Low / High-Low
     df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 40, .75, 'C-', 120, 0.13]  # Low-High / High-Low
@@ -280,10 +346,12 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
     df['lottery flavor'] = df['lottery type'].replace({'C+':cPlus_flavor, 'C-':cMinus_flavor, 'money':''})
     df['lottery shape'] = df['lottery type'].replace({'C+':cPlus_shape, 'C-':cMinus_shape, 'money':''})
 
+    # create separate dataframes for same type and mixed type trials
     same_df = df[df['Trial Type'] == 'same']
     mixed_df = df[df['Trial Type'] != 'same']
 
     blocks = []
+    # each lotery option is repeated 6 times (in the whole task)
     n_Lott_reps = 6
     if mixed_blocks:
       mixed_blocks_df = pd.concat([same_df, mixed_df]).sample(frac = 1).reset_index(drop=True)
@@ -311,8 +379,10 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
       block += 1
 
     df_final.reset_index(drop = True, inplace = True)
+    # save the file as json in the proper path
     df_final.to_json(fpath, orient='index')
   
+  #return the task trials as a dataframe, as well as the C+ and C- flavours
   return df_final, cPlus_flavor, cMinus_flavor
 
 def realizeChoices(row, rng):
