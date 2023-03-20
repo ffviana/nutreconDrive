@@ -100,24 +100,27 @@ class Vars:
   assoc3_fileID = 'day3_atest'
   assoc3_order_fileID = 'day3_atestOrder'
 
-  neuroEconOrder0_fileID = 'day1_neuroEconOrder'
-  # files containing the order of the trials in the neuroeconomics task performed at day 2 and 3
-  neuroEconOrder1_fileID = 'day2_neuroEconOrder'
-  neuroEconOrder2_fileID = 'day3_neuroEconOrder'
-  
   conditioning_order_fileID = '_condOrder_'
   conditioning_order_colName = 'Conditioning Order'
 
+  # files containing the order of the trials in the neuroeconomics task performed at day 2 and 3
+  neuroEconOrder0_fileID = 'day1_neuroEconOrder'
+  neuroEconOrder1_fileID = 'day2_neuroEconOrder'
+  neuroEconOrder2_fileID = 'day3_neuroEconOrder'
+  
   # files containing the users' responses to the neuroeconomics task
   neuroEcon_id = '_neuroEcon_'
   neuroEcon_d1_responses_fileID = 'day1_neuroEcon'
   neuroEcon_d2_responses_fileID = 'day2_neuroEcon'
   neuroEcon_d3_responses_fileID = 'day3_neuroEcon'
 
-  neurEconRealization_d1_fileID = 'day1_neurEconRealization'
   # trials that were actually realized after the task was completed
+  neurEconRealization_d1_fileID = 'day1_neurEconRealization'
   neurEconRealization_d2_fileID = 'day2_neurEconRealization'
   neurEconRealization_d3_fileID = 'day3_neurEconRealization'
+
+  # Probability of choosing Lottery colName
+  probLotteryChoice_colName = 'Prob. of choosing lottery'
 
   # files containing users' responses to Taste Strips
   tasteStrips_fileID = '_tasteStrips_'

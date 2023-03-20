@@ -35,10 +35,8 @@ def assign_group(row, subID_col = 'User'):
 
 
 # ------------------------------------------------------------------------
-#                           Computerized Tasks
+#                              Flavor Ratings
 # ------------------------------------------------------------------------
-
-
 def flavorRatings(responses_dataPath):
 
     subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
@@ -73,12 +71,49 @@ def flavorRatings(responses_dataPath):
 
     return allRatings_df
 
+def get_ratings_and_calories(allRatings_df, calorieCodes_df):
+    ratings_and_calorie_df = allRatings_df[
+        ['User', _v_.group_colName,'Day',
+         _v_.novelty_colName, _v_.intensity_colName, _v_.pleasanteness_colName, 
+         _v_.flavorName_colName]].merge(
+            calorieCodes_df, left_on=['User', _v_.flavorName_colName], 
+            right_on=['sub_id', _v_.flavorName_colName], 
+            how = 'outer').drop(columns = 'sub_id').dropna(subset = 'User')
+
+    ratings_and_calorie_df = ratings_and_calorie_df.sort_values(
+            by=[_v_.group_colName, 'User', 
+                'Day', _v_.flavorName_colName]).reset_index(drop = True)
+    
+    return ratings_and_calorie_df
+
+
+# ------------------------------------------------------------------------
+#                                 NUTRECON
+# ------------------------------------------------------------------------
+def get_reward_choice(row):
+  if row['choice'] == 1:
+    reward = row['reference type']
+  elif row['choice'] == 2:
+    reward = row['lottery type']
+  else:
+    reward = ''
+
+  return reward
+
+def get_choice_side(row):
+  if row['choice'] == 1:
+    reward = 'reference'
+  elif row['choice'] == 2:
+    reward = 'lottery'
+  else:
+    reward = ''
+  return reward
+
 def nutreconTrials(responses_dataPath):
 
     subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
         for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.neuroEcon_id))]))
 
-    # load all neuroeconomics responses
     # load all neuroeconomics responses
     for subject_code in subject_code_list:
         neuroEcon_paths = glob('{}{}*{}*'.format(responses_dataPath, subject_code, _v_.neuroEcon_id))
@@ -99,8 +134,16 @@ def nutreconTrials(responses_dataPath):
     all_neuroEcon_df.reset_index(inplace= True, drop=True)
     all_neuroEcon_df.drop_duplicates(inplace=True)
     all_neuroEcon_df[_v_.group_colName] = all_neuroEcon_df.apply(lambda row: assign_group(row), axis = 1)
-
+    all_neuroEcon_df = all_neuroEcon_df.replace({'C+':'CS+','C-':'CS-'})
+    all_neuroEcon_df['chosen reward'] = all_neuroEcon_df.apply(
+                lambda row: get_reward_choice(row), axis = 1)
+    all_neuroEcon_df['chosen option'] = all_neuroEcon_df.apply(
+                    lambda row: get_choice_side(row), axis = 1)
     return all_neuroEcon_df
+
+# ------------------------------------------------------------------------
+#                               Conditioning
+# ------------------------------------------------------------------------
 
 def get_conditionedFlavor(all_neuroEcon_df):
     # Get conditioned Flavors from NeuroEconomics Trials
