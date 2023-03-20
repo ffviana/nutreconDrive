@@ -11,8 +11,39 @@ import numpy as np
 
 
 _v_ = Vars()
+# ------------------------------------------------------------------------
+#                                Subject Groups
+# ------------------------------------------------------------------------
 
-def flavorRatings(subject_code_list, responses_dataPath):
+exluded_subjects = ['nutre016', # did not compy with conditioning
+                    ]
+
+# No neuroeconomics task on preconditioning day 1
+cohort1 = ['nutre001', 'nutre002', 'nutre003', 'nutre004', 'nutre005',
+       'nutre006', 'nutre007', 'nutre008'] 
+
+def assign_group(row, subID_col = 'User'):
+    # Used to assign subject group based on subject ID
+    sub_id = row[subID_col]
+    if sub_id in exluded_subjects:
+        label = 'excluded'
+    elif sub_id in cohort1:
+        label = 'cohort 1'
+    else:
+        label = 'cohort 2'
+    return label
+
+
+# ------------------------------------------------------------------------
+#                           Computerized Tasks
+# ------------------------------------------------------------------------
+
+
+def flavorRatings(responses_dataPath):
+
+    subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
+        for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.ratings_id))]))
+
     # Load all subject Ratings
     for subject_code in subject_code_list:
         # Build subject rating paths from subject code
@@ -38,10 +69,15 @@ def flavorRatings(subject_code_list, responses_dataPath):
         else:
             allRatings_df = pd.concat([allRatings_df, subjectRatings_df])
     allRatings_df.drop_duplicates(inplace=True)
+    allRatings_df[_v_.group_colName] = allRatings_df.apply(lambda row: assign_group(row), axis = 1)
 
     return allRatings_df
 
-def nutreconTrials(subject_code_list, responses_dataPath):
+def nutreconTrials(responses_dataPath):
+
+    subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
+        for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.neuroEcon_id))]))
+
     # load all neuroeconomics responses
     # load all neuroeconomics responses
     for subject_code in subject_code_list:
@@ -62,6 +98,7 @@ def nutreconTrials(subject_code_list, responses_dataPath):
     all_neuroEcon_df['Day'] = all_neuroEcon_df['Day'].apply(lambda day: int(day[-1]))
     all_neuroEcon_df.reset_index(inplace= True, drop=True)
     all_neuroEcon_df.drop_duplicates(inplace=True)
+    all_neuroEcon_df[_v_.group_colName] = all_neuroEcon_df.apply(lambda row: assign_group(row), axis = 1)
 
     return all_neuroEcon_df
 
@@ -79,9 +116,9 @@ def get_conditionedFlavor(all_neuroEcon_df):
 
     return calorieCodes_df
 
-# -----------------------------------------------------------------
-#                           Taste Strips
-# -----------------------------------------------------------------
+# ------------------------------------------------------------------------
+#                          Taste Strip Ratings
+# ------------------------------------------------------------------------
 
 def get_stripID(row):
     order = _v_.taste_stripsID_orders[row[_v_.stripsOrder_colName]]
@@ -195,5 +232,25 @@ def tasteStripsRatings(psychometrics_dict, responses_dataPath):
     # Join timestamps
     all_tasteRatings = pd.concat([all_tasteRatings, tmp_df[timestamp_cols]], axis = 1)
     all_tasteRatings.drop_duplicates(inplace=True)
+    all_tasteRatings[_v_.group_colName] = all_tasteRatings.apply(lambda row: assign_group(row), axis = 1)
     
     return all_tasteRatings
+
+# ------------------------------------------------------------------------
+#                    Sociodemographic and Psychometric
+# ------------------------------------------------------------------------
+
+def sociodemographic(psychometrics_dict):
+    sociodemo_df = psychometrics_dict['sociodemografic']
+    sociodemo_df = sociodemo_df[['age', 'sex (0/1)', 'education (years)', 
+                                'education', 'height', 'weight', 'bmi']]
+    sociodemo_df.dropna(how='all', inplace = True)
+    sociodemo_df.reset_index(inplace=True)
+    sociodemo_df = sociodemo_df.rename(columns={'index': 'sub_id'})
+    sociodemo_df[_v_.group_colName] = sociodemo_df.apply(lambda row: assign_group(row, 'sub_id'), axis = 1)
+    sociodemo_df['sex (0/1)'] = sociodemo_df['sex (0/1)'].astype("int").astype("category")
+    sociodemo_df['education'] = sociodemo_df['education'].astype("category")
+    sociodemo_df[_v_.group_colName] = sociodemo_df[_v_.group_colName].astype("category")
+    sociodemo_df['education (years)'] = sociodemo_df['education (years)'].astype("int")
+
+    return sociodemo_df

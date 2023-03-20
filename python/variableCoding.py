@@ -147,3 +147,6 @@ class Vars:
     17: salt + sweet + H2O + sour + H2O + bitter,
     18: sweet + salt + H2O + sour + H2O + bitter
     }
+  
+  # Group column names
+  group_colName = 'cohort_id'
