@@ -292,6 +292,7 @@ def sociodemographic(psychometrics_dict):
     sociodemo_df = sociodemo_df.rename(columns={'index': 'sub_id'})
     sociodemo_df[_v_.group_colName] = sociodemo_df.apply(lambda row: assign_group(row, 'sub_id'), axis = 1)
     sociodemo_df['sex (0/1)'] = sociodemo_df['sex (0/1)'].astype("int").astype("category")
+    sociodemo_df['education'] = sociodemo_df['education'].apply(lambda x: x.split(' ')[0])
     sociodemo_df['education'] = sociodemo_df['education'].astype("category")
     sociodemo_df[_v_.group_colName] = sociodemo_df[_v_.group_colName].astype("category")
     sociodemo_df['education (years)'] = sociodemo_df['education (years)'].astype("int")
