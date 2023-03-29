@@ -27,8 +27,10 @@ def day1_flavorRatings(allRatings_df):
     # Create Figure Subplots with mapped dataframe
     g = sns.FacetGrid(day1_ratings_longdf, col="scale", col_order = [_v_.novelty_colName, _v_.intensity_colName, _v_.pleasanteness_colName], sharey = False, legend_out = True,  height = 6, aspect = 1);
     # add swarmplot
-    g.map_dataframe(sns.swarmplot, x=_v_.flavorName_colName, y="score", hue = 'User', order = sorted(day1_ratings_longdf[_v_.flavorName_colName].unique()), size=6,
-                    hue_order = sorted(list(day1_ratings_longdf['User'].unique())));
+    g.map_dataframe(sns.swarmplot, x=_v_.flavorName_colName, y="score", hue = 'User', 
+                    order = sorted(day1_ratings_longdf[_v_.flavorName_colName].unique()), size=10,
+                    hue_order = sorted(list(day1_ratings_longdf['User'].unique())),
+                    palette = px.colors.qualitative.Alphabet, linewidth=0 );
     # add boxplot
     g.map_dataframe(sns.boxplot, x=_v_.flavorName_colName, y="score", order = sorted(day1_ratings_longdf[_v_.flavorName_colName].unique()), boxprops=dict(facecolor=(0,0,0,0)));
     # change X tick labels
