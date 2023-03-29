@@ -74,7 +74,7 @@ class Vars:
   pres_order_d2_fileID = 'day2_presOrder'
   pres_order_d3_fileID = 'day3_presOrder'
 
-  ratings_id = '_ratings_'
+  ratings_fileID = '_ratings_'
   flav_ratings_fileID = 'day1_rating'
   flav_ratings_d2_fileID = 'day2_rating'
   flav_ratings_d3_fileID = 'day3_rating'
@@ -85,8 +85,15 @@ class Vars:
 
   learn_order_fileID = 'day1_learnOrder'
   learningOrder_colName = 'Learning order'
-  imageName_colName = 'image'
-  imageID_colName = 'image_id'
+  shapeName_colName = 'shape'
+  shapeID_colName = 'shape_id'
+  shapeRomanID_colName = 'shapeRoman_id'
+  # imageName_colName = 'shape'
+  # imageID_colName = 'shape_id'
+  # imageRomanID_colName = 'shapeRoman_id'
+
+  associaitonTest_fileID = '_atest_'
+  associaitonOrder_fileID = '_atestOrder_'
 
   assocTestOrder1_colName = 'Day 1 - Association Test order'
   assoc1_fileID = 'day1_atest'

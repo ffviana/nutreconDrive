@@ -9,6 +9,8 @@ from glob import glob
 import pandas as pd
 import numpy as np
 
+from sklearn.metrics import confusion_matrix
+
 
 _v_ = Vars()
 # ------------------------------------------------------------------------
@@ -40,12 +42,12 @@ def assign_group(row, subID_col = 'User'):
 def flavorRatings(responses_dataPath):
 
     subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
-        for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.ratings_id))]))
+        for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.ratings_fileID))]))
 
     # Load all subject Ratings
     for subject_code in subject_code_list:
         # Build subject rating paths from subject code
-        ratings_paths = glob('{}{}*{}*'.format(responses_dataPath, subject_code, _v_.ratings_id))
+        ratings_paths = glob('{}{}*{}*'.format(responses_dataPath, subject_code, _v_.ratings_fileID))
         for ratings_path in ratings_paths:
             # Load ratings per day
             dayRating_df = pd.read_json(ratings_path)
@@ -85,6 +87,76 @@ def get_ratings_and_calories(allRatings_df, calorieCodes_df):
                 'Day', _v_.flavorName_colName]).reset_index(drop = True)
     
     return ratings_and_calorie_df
+
+# ------------------------------------------------------------------------
+#                            Association Tests
+# ------------------------------------------------------------------------
+
+def associationTests(responses_dataPath):
+    subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
+        for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.associaitonTest_fileID))]))
+
+    # Load all Association Tests
+    for subject_code in subject_code_list:
+        # Build subject association test paths from subject code
+        aTest_paths = glob('{}{}*{}*'.format(responses_dataPath, subject_code, _v_.associaitonTest_fileID))
+        for aTest_path in aTest_paths:
+            # Load Association Test per day
+            dayAtest_df = pd.read_json(aTest_path).rename(columns = {'image_id': 'chosen '+_v_.shapeID_colName})
+            dayAtest_df['chosen '+_v_.shapeName_colName] = dayAtest_df['chosen '+_v_.shapeID_colName].replace(_v_.imageDecoder).replace(_v_.imageCodes)
+            # Get association test order path
+            fpath, day, _, timestamp =  aTest_path.split('_')
+            order_path = glob('{}_{}{}*'.format(fpath.replace('responses', 'sequences'), day, _v_.associaitonOrder_fileID))[0]
+            # Load association test order
+            order_path = glob('{}_{}{}*'.format(fpath.replace('responses', 'sequences'), day, _v_.associaitonOrder_fileID))[0]
+            dayOrder_df = pd.read_json(order_path).T.rename(columns = {'image_id': _v_.shapeRomanID_colName,
+                                                                        'image': 'correct ' +_v_.shapeName_colName})
+            dayOrder_df['Trial'] = np.arange(len(dayOrder_df)) + 1
+            # match Association test order and Association Test
+            dayAtest_df = dayAtest_df.merge(dayOrder_df, left_on = 'Trial', right_on = 'Trial').drop(columns = _v_.shapeRomanID_colName)
+            if aTest_path == aTest_paths[0]:
+                subjectAtest_df = dayAtest_df
+            else: 
+                subjectAtest_df = pd.concat([subjectAtest_df, dayAtest_df])
+        # Create different dataframes
+        if subject_code == subject_code_list[0]:
+            allAtests_df = subjectAtest_df
+        else:
+            allAtests_df = pd.concat([allAtests_df, subjectAtest_df])
+    allAtests_df.drop_duplicates(inplace=True)
+    allAtests_df[_v_.group_colName] = allAtests_df.apply(lambda row: assign_group(row), axis = 1)
+    return allAtests_df
+
+coord2shape_decoder = {p:sorted(list(_v_.imageCodes.values()))[p] 
+                        for p in range(len(list(_v_.imageCodes.values())))}
+
+shape2coord_decoder = {sorted(list(_v_.imageCodes.values()))[p]:p 
+                        for p in range(len(list(_v_.imageCodes.values())))}
+
+flavor2coord_decoder = {sorted(list(_v_.flavorCodes.keys()))[p]:p 
+                                for p in range(len(list(_v_.flavorCodes.keys())))}
+
+def get_coords_df(sub_df):
+    shape2flavor_decoder = sub_df[
+            ['correct ' +_v_.shapeName_colName, _v_.flavorName_colName]].drop_duplicates(
+            ).set_index('correct ' +_v_.shapeName_colName).to_dict()[_v_.flavorName_colName]
+
+    shapeCoords2FlavorCoords_decoder = {shape2coord_decoder[p]:flavor2coord_decoder[shape2flavor_decoder[coord2shape_decoder[shape2coord_decoder[p]]]]
+                            for p in shape2flavor_decoder.keys()}
+
+    cMatrix_shape = confusion_matrix(sub_df['correct shape'], 
+                                    sub_df['chosen shape'], 
+                                    labels = sorted(list(_v_.imageCodes.values())))
+
+    shapes_coordinatesList = [[i,j,cMatrix_shape[i,j]] 
+                            for i in range(cMatrix_shape.shape[0]) 
+                            for j in range(cMatrix_shape.shape[1])]
+
+    coordinates_df = pd.DataFrame(shapes_coordinatesList, columns = ['i_shape','j_shape','correct associations'])
+    coordinates_df['i_flavor'] = coordinates_df['i_shape'].replace(shapeCoords2FlavorCoords_decoder)
+    coordinates_df['j_flavor'] = coordinates_df['j_shape'].replace(shapeCoords2FlavorCoords_decoder)
+
+    return coordinates_df
 
 
 # ------------------------------------------------------------------------
