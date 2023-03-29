@@ -250,11 +250,10 @@ def get_st_likelihood(row, params, cols = optimize_cols):
   sFactor = 1 
 
   # Unpack params
-  if len(params) == 6:
-    # Three alphas, one beta (beta is unpacked directly) (ignore mixed-type parameters)
+  if len(params) == 4:
+    # Three alphas, one beta 
     (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
-     beta,
-     _cPlus_sFactor, _cMinus_sFactor) = params
+     beta) = params
     # Define dictionaries to look-up params
     alphas = {money_id : st_money_alpha,
         cPlus_id : st_cPlus_alpha,
@@ -262,11 +261,10 @@ def get_st_likelihood(row, params, cols = optimize_cols):
     # unpack alphas for trial in question
     ref_alpha = alphas[ref_type]
     lott_alpha = alphas[lott_type]
-  elif len(params) == 10:
-    # Three alphas, three betas (ignore mixed-type parameters)
+  elif len(params) == 6:
+    # Three alphas, three betas 
     (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
-     st_money_beta, st_cPlus_beta, st_cMinus_beta, _mt_cPlus_beta, _mt_cMinus_beta,
-     _cPlus_sFactor, _cMinus_sFactor) = params
+     st_money_beta, st_cPlus_beta, st_cMinus_beta) = params
     # Define dictionaries to look-up params
     alphas = {money_id : st_money_alpha,
         cPlus_id : st_cPlus_alpha,
@@ -314,22 +312,19 @@ def get_mt_likelihood(row, params, cols = optimize_cols):
   lott_alpha = row[lottAlpha_col]
 
   # Unpack params
-  if len(params) == 6:
-    # Three alphas, one beta (beta is unpacked directly) (ignore same-type parameters and beta)
-    (_st_money_alpha, _st_cPlus_alpha, _st_cMinus_alpha, 
-     _beta,
-     cPlus_sFactor, cMinus_sFactor) = params
+  if len(params) == 2:
+    # two scaling factors
+    (cPlus_sFactor, cMinus_sFactor) = params
     # Define dictionaries to look-up params
     scalingFactors = {
             cPlus_id : cPlus_sFactor,
             cMinus_id : cMinus_sFactor}
-    # unpack alphas for trial in question
+    # unpack scaling factors for trial in question
     sFactor = scalingFactors[lott_type]
-    beta = row[beta_col]
-  elif len(params) == 10:
-    # Three alphas, three betas (ignore same-type parameters)
-    (_st_money_alpha, _st_cPlus_alpha, _st_cMinus_alpha, 
-     _st_money_beta, _st_cPlus_beta, _st_cMinus_beta, mt_cPlus_beta, mt_cMinus_beta,
+    beta = row[beta_col] # beta is estimated from sametype trials
+  elif len(params) == 4:
+    # Two betas and two scaling factors
+    (mt_cPlus_beta, mt_cMinus_beta,
      cPlus_sFactor, cMinus_sFactor) = params
     # Define dictionaries to look-up params
     mt_betas = {cPlus_id  : mt_cPlus_beta,
@@ -338,6 +333,7 @@ def get_mt_likelihood(row, params, cols = optimize_cols):
     scalingFactors = {
             cPlus_id : cPlus_sFactor,
             cMinus_id : cMinus_sFactor}
+    # unpack scaling factors for trial in question
     sFactor = scalingFactors[lott_type]
     beta = mt_betas[lott_type]
 
@@ -402,13 +398,35 @@ def stepwise_estimate(args, x0):
   cPlus_mask = df[optimize_cols[4]] == 'CS+'
   cMinus_mask = df[optimize_cols[4]] == 'CS-'
 
-  res_st = minimize(get_st_negLogLikelihood, x0, args=df.loc[st_mask,:])
-  
-  df.loc[mt_mask, optimize_cols[8]] = res_st.x[0]
-  df.loc[mt_mask & cPlus_mask, optimize_cols[9]] = res_st.x[1]
-  df.loc[mt_mask & cMinus_mask, optimize_cols[9]] = res_st.x[2]
+  # Unpack initialization parameters
   if len(x0) == 6:
-    df.loc[mt_mask, optimize_cols[10]] = res_st.x[3]
-  res_mt = minimize(get_mt_negLogLikelihood, x0, args=df.loc[mt_mask,:])
+    (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+        beta,
+        cPlus_sFactor, cMinus_sFactor) = x0
+    st_params = (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+                beta)
+    mt_params = (cPlus_sFactor, cMinus_sFactor)
+  elif len(x0) == 10:
+    (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+        st_money_beta, st_cPlus_beta, st_cMinus_beta,
+        mt_cPlus_beta, mt_cMinus_beta,
+        cPlus_sFactor, cMinus_sFactor) = x0
+    st_params = (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+                st_money_beta, st_cPlus_beta, st_cMinus_beta)
+    mt_params = (mt_cPlus_beta, mt_cMinus_beta,
+                cPlus_sFactor, cMinus_sFactor)
+    
+  # Estimate parameters from Same type trials
+  res_st = minimize(get_st_negLogLikelihood, st_params, args=df.loc[st_mask,:])
+  
+  # map same type estimation results to required fields
+  df.loc[mt_mask, optimize_cols[8]] = res_st.x[0]                 # Money alpha
+  df.loc[mt_mask & cPlus_mask, optimize_cols[9]] = res_st.x[1]    # CS+ alpha
+  df.loc[mt_mask & cMinus_mask, optimize_cols[9]] = res_st.x[2]   # CS- alpha
+  if len(x0) == 6:
+    df.loc[mt_mask, optimize_cols[10]] = res_st.x[3]              # beta
+    
+  # Estimate parameters from mixed type trials
+  res_mt = minimize(get_mt_negLogLikelihood, mt_params, args=df.loc[mt_mask,:])
 
   return res_st, res_mt

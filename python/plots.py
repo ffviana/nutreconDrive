@@ -3,6 +3,7 @@ sys.path.append('D:/FV/Projects/NUTRECON/nutreconDrive/python')
 from variableCoding import Vars
 _v_ = Vars()
 
+from numpy import random
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -28,7 +29,7 @@ def day1_flavorRatings(allRatings_df):
     g = sns.FacetGrid(day1_ratings_longdf, col="scale", col_order = [_v_.novelty_colName, _v_.intensity_colName, _v_.pleasanteness_colName], sharey = False, legend_out = True,  height = 6, aspect = 1);
     # add swarmplot
     g.map_dataframe(sns.swarmplot, x=_v_.flavorName_colName, y="score", hue = 'User', 
-                    order = sorted(day1_ratings_longdf[_v_.flavorName_colName].unique()), size=10,
+                    order = sorted(day1_ratings_longdf[_v_.flavorName_colName].unique()), size=8.5,
                     hue_order = sorted(list(day1_ratings_longdf['User'].unique())),
                     palette = px.colors.qualitative.Alphabet, linewidth=0 );
     # add boxplot
