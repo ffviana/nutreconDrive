@@ -132,7 +132,7 @@ def _get_likelihood(row, params, cols = optimize_cols):
 
   return likelihood
 
-def get_st_likelihood(row, params, cols = optimize_cols):
+def _get_st_likelihood(row, params, cols = optimize_cols):
 
   # Get column names
   refT_col = cols[1]    # reference type column name   
@@ -269,7 +269,7 @@ def _get_st_negLogLikelihood(params, args):
 
   df = args
   # compute likelihood of each choice
-  likelihood = df.apply(lambda row: get_st_likelihood(row, params), axis=1).values
+  likelihood = df.apply(lambda row: _get_st_likelihood(row, params), axis=1).values
   # Take negative of logLikelihood for convention
   negloglikelihood = - np.sum(np.log(likelihood))
   return negloglikelihood

@@ -19,10 +19,15 @@ _v_ = Vars()
 # ---------------------------- EXCLUDED SUBJECTS ----------------------------
 
 # did not comply with conditioning
-exluded_conditioning = ['nutre016', 
+excluded_conditioning = [ 
                     ]
 # medication
-exluded_medication = []
+excluded_Diagnosis_Medication = [
+                    'nutre002', # Sertralina/POC
+                    'nutre012', # PEA
+                    'nutre015', # Ansiedade
+                    'nutre016', # Ansiedade de Depressão
+                       ]
 
 # --------------------------------- COHORTS ---------------------------------
 
@@ -44,9 +49,9 @@ def _assign_group(row, subID_col = 'User'):
 def _label_exclusions(row, subID_col = 'User'):
     # Used to assign subject group based on subject ID
     sub_id = row[subID_col]
-    if sub_id in exluded_conditioning:
+    if sub_id in excluded_conditioning:
         label = 1
-    elif sub_id in exluded_medication:
+    elif sub_id in excluded_Diagnosis_Medication:
         label = 2
     else:
         label = 0
@@ -449,7 +454,7 @@ def sociodemographic(psychometrics_dict):
     sociodemo_df = psychometrics_dict['sociodemografic']
     sociodemo_df = sociodemo_df[['age', 'sex (0/1)', 'education (years)', 
                                 'education', 'height', 'weight', 'bmi']]
-    sociodemo_df.dropna(how='all', inplace = True)
+    sociodemo_df = sociodemo_df.dropna(how='all')
     sociodemo_df.reset_index(inplace=True)
     sociodemo_df = sociodemo_df.rename(columns={'index': 'sub_id'})
     sociodemo_df[_v_.group_colName] = sociodemo_df.apply(lambda row: _assign_group(row, 'sub_id'), axis = 1)
@@ -462,3 +467,20 @@ def sociodemographic(psychometrics_dict):
     sociodemo_df['education (years)'] = sociodemo_df['education (years)'].astype("int")
 
     return sociodemo_df
+
+def print_sociodemographic_summary(sociodemo_df):
+    for col in sociodemo_df.select_dtypes(include='category').columns:
+        if col != _v_.group_colName:
+            print(col)
+            print(sociodemo_df[col].value_counts())
+            print(40 * '-')
+        else:
+            tmp_df = sociodemo_df.copy()
+            tmp_df['excluded'] = np.where(tmp_df['excluded'] == 0, 0, 1)
+            tmp_df = pd.DataFrame(tmp_df.groupby(col)['excluded'].value_counts())
+            tmp_df.index.names = [_v_.group_colName, 'excluded']
+            tmp_df.columns = ['count']
+            print(tmp_df)
+            print(40 * '-')
+            break
+    return
