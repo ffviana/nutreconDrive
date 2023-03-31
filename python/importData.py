@@ -9,36 +9,52 @@ from glob import glob
 import pandas as pd
 import numpy as np
 
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
 
 
 _v_ = Vars()
-# ------------------------------------------------------------------------
-#                                Subject Groups
-# ------------------------------------------------------------------------
+# %%___________________________ Subject Groups ______________________________
+# ===========================================================================
 
-exluded_subjects = ['nutre016', # did not compy with conditioning
+# ---------------------------- EXCLUDED SUBJECTS ----------------------------
+
+# did not comply with conditioning
+exluded_conditioning = ['nutre016', 
                     ]
+# medication
+exluded_medication = []
+
+# --------------------------------- COHORTS ---------------------------------
 
 # No neuroeconomics task on preconditioning day 1
 cohort1 = ['nutre001', 'nutre002', 'nutre003', 'nutre004', 'nutre005',
        'nutre006', 'nutre007', 'nutre008'] 
 
-def assign_group(row, subID_col = 'User'):
+# ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+
+def _assign_group(row, subID_col = 'User'):
     # Used to assign subject group based on subject ID
     sub_id = row[subID_col]
-    if sub_id in exluded_subjects:
-        label = 'excluded'
-    elif sub_id in cohort1:
+    if sub_id in cohort1:
         label = 'cohort 1'
     else:
         label = 'cohort 2'
     return label
 
+def _label_exclusions(row, subID_col = 'User'):
+    # Used to assign subject group based on subject ID
+    sub_id = row[subID_col]
+    if sub_id in exluded_conditioning:
+        label = 1
+    elif sub_id in exluded_medication:
+        label = 2
+    else:
+        label = 0
+    return label
 
-# ------------------------------------------------------------------------
-#                              Flavor Ratings
-# ------------------------------------------------------------------------
+# %%____________________________ Flavor Ratings _____________________________
+# ===========================================================================
+
 def flavorRatings(responses_dataPath):
 
     subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
@@ -69,7 +85,8 @@ def flavorRatings(responses_dataPath):
         else:
             allRatings_df = pd.concat([allRatings_df, subjectRatings_df])
     allRatings_df.drop_duplicates(inplace=True)
-    allRatings_df[_v_.group_colName] = allRatings_df.apply(lambda row: assign_group(row), axis = 1)
+    allRatings_df[_v_.group_colName] = allRatings_df.apply(lambda row: _assign_group(row), axis = 1)
+    allRatings_df[_v_.excluded_colName]= allRatings_df.apply(lambda row: _label_exclusions(row), axis = 1)
 
     return allRatings_df
 
@@ -88,9 +105,8 @@ def get_ratings_and_calories(allRatings_df, calorieCodes_df):
     
     return ratings_and_calorie_df
 
-# ------------------------------------------------------------------------
-#                            Association Tests
-# ------------------------------------------------------------------------
+# %%__________________________ Association Tests ____________________________
+# ===========================================================================
 
 def associationTests(responses_dataPath):
     subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
@@ -124,7 +140,9 @@ def associationTests(responses_dataPath):
         else:
             allAtests_df = pd.concat([allAtests_df, subjectAtest_df])
     allAtests_df.drop_duplicates(inplace=True)
-    allAtests_df[_v_.group_colName] = allAtests_df.apply(lambda row: assign_group(row), axis = 1)
+    allAtests_df[_v_.group_colName] = allAtests_df.apply(lambda row: _assign_group(row), axis = 1)
+    allAtests_df[_v_.excluded_colName]= allAtests_df.apply(lambda row: _label_exclusions(row), axis = 1)
+
     return allAtests_df
 
 coord2shape_decoder = {p:sorted(list(_v_.imageCodes.values()))[p] 
@@ -136,7 +154,7 @@ shape2coord_decoder = {sorted(list(_v_.imageCodes.values()))[p]:p
 flavor2coord_decoder = {sorted(list(_v_.flavorCodes.keys()))[p]:p 
                                 for p in range(len(list(_v_.flavorCodes.keys())))}
 
-def get_coords_df(sub_df):
+def _get_coords_df(sub_df):
     shape2flavor_decoder = sub_df[
             ['correct ' +_v_.shapeName_colName, _v_.flavorName_colName]].drop_duplicates(
             ).set_index('correct ' +_v_.shapeName_colName).to_dict()[_v_.flavorName_colName]
@@ -158,11 +176,84 @@ def get_coords_df(sub_df):
 
     return coordinates_df
 
+def _get_confMartix_lv2(df, shapes = True):
+    if shapes:
+        i_ = 'i_shape'
+        j_ = 'j_shape'
+        size = len(_v_.imageCodes.keys())
+    else:
+        i_ = 'i_flavor'
+        j_ = 'j_flavor'
+        size = len(_v_.flavorCodes.keys())
+    
+    cMat = np.full((size, size), np.nan)
+    for coord in list(zip(df[i_], df[j_], df['correct associations'])):
+        cMat[coord[0],coord[1]] = coord[2]
+    
+    return cMat
 
-# ------------------------------------------------------------------------
-#                                 NUTRECON
-# ------------------------------------------------------------------------
-def get_reward_choice(row):
+def _get_confMartix_lv1(df, col, shapes = True):
+    return df.groupby(col).apply(lambda df2:  _get_confMartix_lv2(df2, shapes = shapes)).to_dict()
+
+def associationTests_confMatrix(allAtests_df):
+    cMatrix_coordinates_df = allAtests_df.groupby(['User','Day']).apply(
+                        lambda df: _get_coords_df(df)).reset_index().drop(columns = 'level_2')
+    cMatrix_dic = {}
+    cMatrix_dic[_v_.shapeName_colName] = cMatrix_coordinates_df.groupby('Day').apply(
+                        lambda df: _get_confMartix_lv1(df, 'User', shapes = True)).to_dict()
+    cMatrix_dic[_v_.flavorName_colName] = cMatrix_coordinates_df.groupby('Day').apply(
+                        lambda df: _get_confMartix_lv1(df, 'User', shapes = False)).to_dict()
+    return cMatrix_dic
+
+def _get_specifity(matrix):
+    specificity = []
+    for c in range(len(matrix)):
+        FP = sum(matrix[:,c]) - matrix[c,c]
+
+        tmp = np.delete(matrix, c, 0) 
+        TN = sum(np.delete(tmp, c, 1).flatten())
+
+        specificity.append( TN / (TN + FP) )
+    return specificity
+
+def _get_associationTest_summary(sub_df):
+    shape2flavor_decoder = sub_df[
+            ['correct ' +_v_.shapeName_colName, _v_.flavorName_colName]].drop_duplicates(
+            ).set_index('correct ' +_v_.shapeName_colName).to_dict()[_v_.flavorName_colName]
+    cMatrix_shape = confusion_matrix(sub_df['correct ' +_v_.shapeName_colName], 
+                                    sub_df['chosen ' +_v_.shapeName_colName], 
+                                    labels = sorted(list(_v_.imageCodes.values())))
+    specificity = _get_specifity(cMatrix_shape)
+    specificity = {p:{'specificity': specificity[shape2coord_decoder[p]]} for p in sub_df['correct ' +_v_.shapeName_colName].unique()}
+    
+    report_dic = classification_report(sub_df['correct ' +_v_.shapeName_colName], 
+                                    sub_df['chosen ' +_v_.shapeName_colName], 
+                                    labels = sorted(list(_v_.imageCodes.values())),
+                                    output_dict=True, zero_division=0)
+    
+    shape_scores = {p:report_dic[p] for p in sub_df['correct ' +_v_.shapeName_colName].unique()}
+    shape_scores_df = pd.DataFrame(shape_scores).T.drop(columns = 'support').join(pd.DataFrame(specificity).T)
+    col_names = ['precision', 'sensitivity', 'f1-score', 'specificity']
+    shape_scores_df.columns = col_names
+    shape_scores_df.index.name = _v_.shapeName_colName
+    shape_scores_df[_v_.flavorName_colName] = [shape2flavor_decoder[p] for p in shape_scores_df.index]
+    # shape_scores_df[_v_.group_colName] = shape_scores_df.apply(lambda row: _assign_group(row), axis = 1)
+    # shape_scores_df[_v_.excluded_colName]= shape_scores_df.apply(lambda row: _label_exclusions(row), axis = 1)
+
+    return shape_scores_df
+
+def associationTests_summary(allAtests_df):
+    aTest_summary = allAtests_df.groupby(['User','Day']).apply(lambda sub_df: _get_associationTest_summary(sub_df)).reset_index()
+    aTest_summary[_v_.group_colName] = aTest_summary.apply(lambda row: _assign_group(row), axis = 1)
+    aTest_summary[_v_.excluded_colName]= aTest_summary.apply(lambda row: _label_exclusions(row), axis = 1)
+
+    return aTest_summary
+
+
+# %%______________________________ NUTRECON _________________________________
+# ===========================================================================
+
+def _get_reward_choice(row):
   if row['choice'] == 1:
     reward = row['reference type']
   elif row['choice'] == 2:
@@ -172,7 +263,7 @@ def get_reward_choice(row):
 
   return reward
 
-def get_choice_side(row):
+def _get_choice_side(row):
   if row['choice'] == 1:
     reward = 'reference'
   elif row['choice'] == 2:
@@ -205,17 +296,17 @@ def nutreconTrials(responses_dataPath):
     all_neuroEcon_df['Day'] = all_neuroEcon_df['Day'].apply(lambda day: int(day[-1]))
     all_neuroEcon_df.reset_index(inplace= True, drop=True)
     all_neuroEcon_df.drop_duplicates(inplace=True)
-    all_neuroEcon_df[_v_.group_colName] = all_neuroEcon_df.apply(lambda row: assign_group(row), axis = 1)
+    all_neuroEcon_df[_v_.group_colName] = all_neuroEcon_df.apply(lambda row: _assign_group(row), axis = 1)
+    all_neuroEcon_df[_v_.excluded_colName]= all_neuroEcon_df.apply(lambda row: _label_exclusions(row), axis = 1)
     all_neuroEcon_df = all_neuroEcon_df.replace({'C+':'CS+','C-':'CS-'})
     all_neuroEcon_df['chosen reward'] = all_neuroEcon_df.apply(
-                lambda row: get_reward_choice(row), axis = 1)
+                lambda row: _get_reward_choice(row), axis = 1)
     all_neuroEcon_df['chosen option'] = all_neuroEcon_df.apply(
-                    lambda row: get_choice_side(row), axis = 1)
+                    lambda row: _get_choice_side(row), axis = 1)
     return all_neuroEcon_df
 
-# ------------------------------------------------------------------------
-#                               Conditioning
-# ------------------------------------------------------------------------
+# %%____________________________ Conditioning _______________________________
+# ===========================================================================
 
 def get_conditionedFlavor(all_neuroEcon_df):
     # Get conditioned Flavors from NeuroEconomics Trials
@@ -231,15 +322,14 @@ def get_conditionedFlavor(all_neuroEcon_df):
 
     return calorieCodes_df
 
-# ------------------------------------------------------------------------
-#                          Taste Strip Ratings
-# ------------------------------------------------------------------------
+# %%________________________ Taste Strip Ratings ____________________________
+# ===========================================================================
 
-def get_stripID(row):
+def _get_stripID(row):
     order = _v_.taste_stripsID_orders[row[_v_.stripsOrder_colName]]
     return order[row['Trial'] - 1]
 
-def get_stripName(row):
+def _get_stripName(row):
     strip_id = row[_v_.stripID_colName]
     if strip_id == 5:
         strip_name = 'water'
@@ -253,7 +343,7 @@ def get_stripName(row):
         strip_name = 'bitter{}'.format(row[_v_.stripID_colName] - 14)
     return strip_name   
                                 
-def check_tastant(row):
+def _check_tastant(row):
     strip_id = row[_v_.stripID_colName]
     answer = row[_v_.tastant_colName]
     if strip_id == 5:
@@ -340,20 +430,20 @@ def tasteStripsRatings(psychometrics_dict, responses_dataPath):
     all_tasteRatings = pd.concat([tmp_df[['User', 'Trial', _v_.stripsOrder_colName]], tmp_df3.drop(columns='User') ], axis = 1)
 
 
-    all_tasteRatings[_v_.stripID_colName] = all_tasteRatings.apply(lambda row: get_stripID(row), axis=1)
-    all_tasteRatings[_v_.stripName_colName] = all_tasteRatings.apply(lambda row: get_stripName(row), axis=1)
-    all_tasteRatings['identification'] = all_tasteRatings.apply(lambda row: check_tastant(row), axis=1)
+    all_tasteRatings[_v_.stripID_colName] = all_tasteRatings.apply(lambda row: _get_stripID(row), axis=1)
+    all_tasteRatings[_v_.stripName_colName] = all_tasteRatings.apply(lambda row: _get_stripName(row), axis=1)
+    all_tasteRatings['identification'] = all_tasteRatings.apply(lambda row: _check_tastant(row), axis=1)
 
     # Join timestamps
     all_tasteRatings = pd.concat([all_tasteRatings, tmp_df[timestamp_cols]], axis = 1)
     all_tasteRatings.drop_duplicates(inplace=True)
-    all_tasteRatings[_v_.group_colName] = all_tasteRatings.apply(lambda row: assign_group(row), axis = 1)
+    all_tasteRatings[_v_.group_colName] = all_tasteRatings.apply(lambda row: _assign_group(row), axis = 1)
+    all_tasteRatings[_v_.excluded_colName]= all_tasteRatings.apply(lambda row: _label_exclusions(row), axis = 1)
     
     return all_tasteRatings
 
-# ------------------------------------------------------------------------
-#                    Sociodemographic and Psychometric
-# ------------------------------------------------------------------------
+# %%_________________ Sociodemographic and Psychometric _____________________
+# ===========================================================================
 
 def sociodemographic(psychometrics_dict):
     sociodemo_df = psychometrics_dict['sociodemografic']
@@ -362,11 +452,13 @@ def sociodemographic(psychometrics_dict):
     sociodemo_df.dropna(how='all', inplace = True)
     sociodemo_df.reset_index(inplace=True)
     sociodemo_df = sociodemo_df.rename(columns={'index': 'sub_id'})
-    sociodemo_df[_v_.group_colName] = sociodemo_df.apply(lambda row: assign_group(row, 'sub_id'), axis = 1)
+    sociodemo_df[_v_.group_colName] = sociodemo_df.apply(lambda row: _assign_group(row, 'sub_id'), axis = 1)
+    sociodemo_df[_v_.excluded_colName]= sociodemo_df.apply(lambda row: _label_exclusions(row, 'sub_id'), axis = 1)
     sociodemo_df['sex (0/1)'] = sociodemo_df['sex (0/1)'].astype("int").astype("category")
     sociodemo_df['education'] = sociodemo_df['education'].apply(lambda x: x.split(' ')[0])
     sociodemo_df['education'] = sociodemo_df['education'].astype("category")
     sociodemo_df[_v_.group_colName] = sociodemo_df[_v_.group_colName].astype("category")
+    sociodemo_df[_v_.excluded_colName] = sociodemo_df[_v_.excluded_colName].astype("category")
     sociodemo_df['education (years)'] = sociodemo_df['education (years)'].astype("int")
 
     return sociodemo_df

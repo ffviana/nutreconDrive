@@ -160,3 +160,4 @@ class Vars:
   
   # Group column names
   group_colName = 'cohort_id'
+  excluded_colName = 'excluded'
