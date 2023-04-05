@@ -74,7 +74,7 @@ def fullProtocol_flavorRatings(long_df):
     fig.layout["yaxis1"].title.text = "CS-"
     fig.layout["yaxis4"].title.text = "CS+"
 
-    fig.update_traces(textposition="bottom right")
+    fig.update_traces(textposition="bottom right", marker={'size': 9})
     fig.update_xaxes(type='category')
 
     return fig

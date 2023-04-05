@@ -23,30 +23,36 @@ optimize_cols = column_names[:7]  + column_names[14:19]
 # %%___________________________ Neuroeconomics ______________________________
 # ===========================================================================
 
-def _calculate_EU(p,X, alpha):
+def _calculate_EU(p,X, alpha, optimize = False):
+  if optimize:
+    pass
+    alpha = np.arctan(alpha)
   return p * X**alpha
 
-def _get_EU(row, cols):
+def _get_EU(row, cols, optimize = False):
   X = row[cols[0]]
   p = row[cols[1]]
   alpha = row[cols[2]]
-  EU = _calculate_EU(p,X, alpha)
+  EU = _calculate_EU(p,X, alpha, optimize)
   return EU
 
-def _calculate_pL(euL, euR, beta, sFactor):
+def _calculate_pL(euL, euR, beta, sFactor, optimize = False):
+  if optimize:
+    pass
+    beta = np.arctan(beta)
   return 1 - 1/(1 + np.exp(beta * (euL * sFactor - euR)))
 
-def _get_pL(row):
+def _get_pL(row, optimize = False):
   beta = row[column_names[9]]
   sFactor = row[column_names[10]]
   euR = row[column_names[11]]
   euL = row[column_names[12]]
-  pL = _calculate_pL(euL, euR, beta, sFactor)
+  pL = _calculate_pL(euL, euR, beta, sFactor, optimize)
   return pL
 
 # -------------------------- Likelihood computation -------------------------
 
-def _get_likelihood(row, params, cols = optimize_cols):
+def _get_likelihood(row, params, cols = optimize_cols, optimize = False):
   '''
   This function is used to caluculate likelihood when estimate same-type and mixed-type parameters simultaneously
   '''
@@ -119,11 +125,11 @@ def _get_likelihood(row, params, cols = optimize_cols):
       beta = mt_betas[lott_type] # mixed-type betas
   
   # Calculate reference EU
-  ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha)
+  ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha, optimize)
   # Calculate lottery EU
-  lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha)
+  lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha, optimize)
   # Calculate probability of choosing lottery
-  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor)
+  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor, optimize)
   # 0 - chosing the reference option; 1 - chosing the lottery option;
   if choice == 1:
     likelihood = pL
@@ -132,7 +138,7 @@ def _get_likelihood(row, params, cols = optimize_cols):
 
   return likelihood
 
-def _get_st_likelihood(row, params, cols = optimize_cols):
+def _get_st_likelihood(row, params, cols = optimize_cols, optimize = False):
 
   # Get column names
   refT_col = cols[1]    # reference type column name   
@@ -180,11 +186,11 @@ def _get_st_likelihood(row, params, cols = optimize_cols):
     beta = st_betas[lott_type]
 
   # Calculate reference EU
-  ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha)
+  ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha, optimize)
   # Calculate lottery EU
-  lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha)
+  lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha, optimize)
   # Calculate probability of choosing lottery
-  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor)
+  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor, optimize)
   # 0 - chosing the reference option; 1 - chosing the lottery option;
   if choice == 1:
     likelihood = pL
@@ -193,7 +199,7 @@ def _get_st_likelihood(row, params, cols = optimize_cols):
 
   return likelihood
 
-def _get_mt_likelihood(row, params, cols = optimize_cols):
+def _get_mt_likelihood(row, params, cols = optimize_cols, optimize = False):
 
   # Get column names
   refQ_col = cols[2]        # reference qt. column name
@@ -239,11 +245,11 @@ def _get_mt_likelihood(row, params, cols = optimize_cols):
     beta = mt_betas[lott_type]
 
   # Calculate reference EU
-  ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha)
+  ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha, optimize)
   # Calculate lottery EU
-  lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha)
+  lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha, optimize)
   # Calculate probability of choosing lottery
-  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor)
+  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor, optimize)
   # 0 - chosing the reference option; 1 - chosing the lottery option;
   if choice == 1:
     likelihood = pL
@@ -260,7 +266,7 @@ def _get_negLogLikelihood(params, args):
 
   df = args
   # compute likelihood of each choice
-  likelihood = df.apply(lambda row: _get_likelihood(row, params), axis=1).values
+  likelihood = df.apply(lambda row: _get_likelihood(row, params, optimize=True), axis=1).values
   # Take negative of logLikelihood for convention
   negloglikelihood = - np.sum(np.log(likelihood))
   return negloglikelihood
@@ -269,7 +275,7 @@ def _get_st_negLogLikelihood(params, args):
 
   df = args
   # compute likelihood of each choice
-  likelihood = df.apply(lambda row: _get_st_likelihood(row, params), axis=1).values
+  likelihood = df.apply(lambda row: _get_st_likelihood(row, params, optimize=True), axis=1).values
   # Take negative of logLikelihood for convention
   negloglikelihood = - np.sum(np.log(likelihood))
   return negloglikelihood
@@ -278,7 +284,7 @@ def _get_mt_negLogLikelihood(params, args):
 
   df = args
   # compute likelihood of each choice
-  likelihood = df.apply(lambda row: _get_mt_likelihood(row, params), axis=1).values
+  likelihood = df.apply(lambda row: _get_mt_likelihood(row, params, optimize=True), axis=1).values
   # Take negative of logLikelihood for convention
   negloglikelihood = - np.sum(np.log(likelihood))
   return negloglikelihood
@@ -292,6 +298,9 @@ def simultaneous_estimate(args, x0):
   return res
 
 def stepwise_estimate(args, x0):
+
+  def _get_iter_params(xk):
+    iter_params_list.append(xk.tolist())  
   df = args
   st_mask = df[optimize_cols[0]] == 'same'
   mt_mask = df[optimize_cols[0]] == 'mixed'
@@ -307,6 +316,9 @@ def stepwise_estimate(args, x0):
     st_params = (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
                 beta)
     mt_params = (cPlus_sFactor, cMinus_sFactor)
+    st_params_colNames = ['Money alpha', 'CS+ alpha', 'CS- alpha', 
+                          'beta']
+    mt_params_colNames = ['CS+ sFactor', 'CS- sFactor']
   elif len(x0) == 10:
     (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
         st_money_beta, st_cPlus_beta, st_cMinus_beta,
@@ -316,9 +328,16 @@ def stepwise_estimate(args, x0):
                 st_money_beta, st_cPlus_beta, st_cMinus_beta)
     mt_params = (mt_cPlus_beta, mt_cMinus_beta,
                 cPlus_sFactor, cMinus_sFactor)
+    st_params_colNames = ['Money alpha', 'CS+ alpha', 'CS- alpha', 
+                          'Money beta', 'CS+ st beta', 'CS- st beta', ]
+    mt_params_colNames = ['CS+ mt beta', 'CS- mt beta',
+                          'CS+ sFactor', 'CS- sFactor']
     
   # Estimate parameters from Same type trials
-  res_st = minimize(_get_st_negLogLikelihood, st_params, args=df.loc[st_mask,:])
+  iter_params_list = []
+  res_st = minimize(_get_st_negLogLikelihood, st_params, args=df.loc[st_mask,:],
+                    callback=_get_iter_params)
+  st_iterParams_df = pd.DataFrame(iter_params_list, columns=st_params_colNames)
   
   # map same type estimation results to required fields
   df.loc[mt_mask, optimize_cols[8]] = res_st.x[0]                 # Money alpha
@@ -328,9 +347,13 @@ def stepwise_estimate(args, x0):
     df.loc[mt_mask, optimize_cols[10]] = res_st.x[3]              # beta
     
   # Estimate parameters from mixed type trials
-  res_mt = minimize(_get_mt_negLogLikelihood, mt_params, args=df.loc[mt_mask,:])
+  iter_params_list = []
+  res_mt = minimize(_get_mt_negLogLikelihood, mt_params, args=df.loc[mt_mask,:],
+                    callback=_get_iter_params)
+  mt_iterParams_df = pd.DataFrame(iter_params_list, columns=mt_params_colNames)
+  
 
-  return res_st, res_mt
+  return res_st, res_mt, st_iterParams_df, mt_iterParams_df
 
 # --------------------------- Output fit results ----------------------------
 
