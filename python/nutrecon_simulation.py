@@ -26,7 +26,7 @@ optimize_cols = column_names[:7]  + column_names[14:19]
 def _calculate_EU(p,X, alpha, optimize = False):
   if optimize:
     pass
-    alpha = np.arctan(alpha)
+    # alpha = np.arctan(alpha)
   return p * X**alpha
 
 def _get_EU(row, cols, optimize = False):
@@ -39,7 +39,7 @@ def _get_EU(row, cols, optimize = False):
 def _calculate_pL(euL, euR, beta, sFactor, optimize = False):
   if optimize:
     pass
-    beta = np.arctan(beta)
+    # beta = np.arctan(beta)
   return 1 - 1/(1 + np.exp(beta * (euL * sFactor - euR)))
 
 def _get_pL(row, optimize = False):
