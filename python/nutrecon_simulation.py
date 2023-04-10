@@ -24,6 +24,7 @@ optimize_cols = column_names[:7]  + column_names[14:19]
 # ===========================================================================
 
 def _calculate_EU(p,X, alpha, optimize = False):
+  
   if optimize:
     pass
     # alpha = np.arctan(alpha)

@@ -277,10 +277,11 @@ def _get_choice_side(row):
     reward = ''
   return reward
 
-def nutreconTrials(responses_dataPath):
+def nutreconTrials(responses_dataPath, subject_code_list = None):
 
-    subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
-        for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.neuroEcon_id))]))
+    if subject_code_list == None:
+        subject_code_list = list(set([s.split('\\')[-1].split('_')[0] 
+            for s in glob('{}{}*{}*'.format(responses_dataPath, _v_.experiment_code, _v_.neuroEcon_id))]))
 
     # load all neuroeconomics responses
     for subject_code in subject_code_list:
