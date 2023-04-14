@@ -41,17 +41,12 @@ class Vars:
   dataPath = dataPath_
   sequences_dataPath = dataPath + 'sequences/'
   responses_dataPath = dataPath + 'responses/'
-<<<<<<< HEAD
   yogurtPrep_path = root + '0. Yogurt Preparation/yogurt prep.xlsx'
   if 'demo' in dataPath:
     experiment_code = 'exampleSub'
   else:
     experiment_code = 'nutre'
   
-=======
-  experiment_code_responses = 'exampleSub'
-  experiment_code_sequences = 'nutre'
->>>>>>> Diogo_MELO_dev
 
   # dictionary containing a code for all the flavors tested
   flavorCodes = {
@@ -117,11 +112,7 @@ class Vars:
   assoc3_fileID = 'day3_atest'
   assoc3_order_fileID = 'day3_atestOrder'
 
-<<<<<<< HEAD
   neuroEconOrder0_fileID = 'day1_neuroEconOrder'
-=======
-  # files containing the order of the trials in the neuroeconomics task performed at day 2 and 3
->>>>>>> Diogo_MELO_dev
   neuroEconOrder1_fileID = 'day2_neuroEconOrder'
   neuroEconOrder2_fileID = 'day3_neuroEconOrder'
   
@@ -134,11 +125,7 @@ class Vars:
   neuroEcon_d2_responses_fileID = 'day2_neuroEcon'
   neuroEcon_d3_responses_fileID = 'day3_neuroEcon'
 
-<<<<<<< HEAD
   neurEconRealization_d1_fileID = 'day1_neurEconRealization'
-=======
-  # trials that were actually realized after the task was completed
->>>>>>> Diogo_MELO_dev
   neurEconRealization_d2_fileID = 'day2_neurEconRealization'
   neurEconRealization_d3_fileID = 'day3_neurEconRealization'
 
@@ -297,19 +284,7 @@ def check_atest(report, flavorImage_code, min_correctResp = 4):
   
   return report_df
 
-<<<<<<< HEAD
 def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section_fileID, data_path, df_pleas, flavorImage_code, flavors = None,  n_Lott_reps = 6, mixed_blocks = False):
-=======
-
-# The two following functions (generate_NeuroeconomicsTrials and realizeChoices) are only used in the Acquisition Notebooks
-# Maybe they should be implemented in a separate script
-
-def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section_fileID, data_path, df_pleas, flavorImage_code, flavors = None,  n_Lott_reps = 6, mixed_blocks = False):
-
-  '''
-  This function generates all the trials of one session of the neuroeconomics task.     
-  '''
->>>>>>> Diogo_MELO_dev
 
   fpath = '{}{}_{}_{}.json'.format(data_path, Subject_code, section_fileID, strTimestamp())
   fileMatchingPattern = glob('{}{}*{}*.json'.format(data_path, Subject_code, section_fileID))
