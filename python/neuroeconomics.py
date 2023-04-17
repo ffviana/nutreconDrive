@@ -16,7 +16,7 @@ optimize_cols = ['trial_type',
               'ref_alpha_est', 'lott_alpha_est', 'beta_est',
               'sFactor_est']
 
-# %%___________________________ Neuroeconomics ______________________________
+# %%_____________________ EU and Lottery probability ________________________
 # ===========================================================================
 
 def _calculate_EU(p,X, alpha, optimize = False):
@@ -32,7 +32,8 @@ def _calculate_pL(euL, euR, beta, sFactor, optimize = False):
     # beta = np.arctan(beta)
   return 1 - 1/(1 + np.exp(beta * (euL * sFactor - euR)))
 
-# -------------------------- Likelihood computation -------------------------
+# %%_______________________ Likelihood computation __________________________
+# ===========================================================================
 
 def _get_likelihood(row, params, cols = optimize_cols, optimize = False):
   '''
@@ -240,7 +241,8 @@ def _get_mt_likelihood(row, params, cols = optimize_cols, optimize = False):
   
   return likelihood
 
-# -------------------- Negative LogLikelihood computation -------------------
+# %%_________________ Negative LogLikelihood computation ____________________
+# ===========================================================================
 
 # Calculating Negative LogLikelihood
 
@@ -273,7 +275,8 @@ def _get_mt_negLogLikelihood(params, args):
 
 # Model Estimation
 
-# -------------------------------- Model fit --------------------------------
+# %%__________________________ Model Estimation _____________________________
+# ===========================================================================
 
 def simultaneous_estimate(args, x0):
   res = minimize(_get_negLogLikelihood, x0, args=args)
@@ -337,7 +340,8 @@ def stepwise_estimate(args, x0):
 
   return res_st, res_mt, st_iterParams_df, mt_iterParams_df
 
-# --------------------------- Output fit results ----------------------------
+# %%_________________________ Output fit results ____________________________
+# ===========================================================================
 
 def print_simultaneousModel_output(res):
   print(50 * '=')
