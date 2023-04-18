@@ -1,11 +1,16 @@
 
 import sys
 sys.path.append('D:/FV/Projects/NUTRECON/nutreconDrive/python')
-from neuroeconomics import _calculate_EU, _calculate_pL
+import neuroeconomics as necon 
+from variableCoding import Vars
 
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+from tqdm import tqdm
+import warnings
+import seaborn as sns # move mean behaviour to plots
+
 
 st_id = 'same'
 mt_id = 'mixed'
@@ -22,7 +27,9 @@ column_names = ['trial_type',
                 'ref_alpha_estStdErr', 'lott_alpha_estStdErr', 'beta_estStdErr']
 
 optimize_cols = column_names[:7]  + column_names[14:19]
+beahviour_cols = necon.optimize_cols[:-4]
 
+_v_ = Vars()
 
 # # %%___________________________ Neuroeconomics ______________________________
 # # ===========================================================================
@@ -31,7 +38,7 @@ def _get_EU(row, cols, optimize = False):
   X = row[cols[0]]
   p = row[cols[1]]
   alpha = row[cols[2]]
-  EU = _calculate_EU(p,X, alpha, optimize)
+  EU = necon._calculate_EU(p,X, alpha, optimize)
   return EU
 
 def _get_pL(row, optimize = False):
@@ -39,7 +46,7 @@ def _get_pL(row, optimize = False):
   sFactor = row[column_names[10]]
   euR = row[column_names[11]]
   euL = row[column_names[12]]
-  pL = _calculate_pL(euL, euR, beta, sFactor, optimize)
+  pL = necon._calculate_pL(euL, euR, beta, sFactor, optimize)
   return pL
 
 # %%_______________________ Simulation preparation __________________________
@@ -160,3 +167,334 @@ def pack_subjectParameters(st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, st_m
                                     allTrials_df)
   subjectTrials_df = _get_subject_choices(subjectTrials_df)
   return subjectTrials_df
+
+# %%___________ Simulate and fit Multiple Subjects preparation ______________
+# ===========================================================================
+
+def _simNsubsfit_oneOptimizer(allTrials_df, N_subs, x0_arr, 
+                                 st_money_alpha_arr, st_cPlus_alpha_arr, st_cMinus_alpha_arr,
+                                 st_money_beta_arr, st_cPlus_beta_arr, st_cMinus_beta_arr,
+                                 mt_cPlus_beta_arr, mt_cMinus_beta_arr, 
+                                 cPlus_sFactor_arr, cMinus_sFactor_arr,
+                                 plot_behaviour = True, output = 'long_flags'):
+
+    # ---------------------------------------------------------------------------
+    # Prelocate mememory and/or create variables for outputs
+    
+    if x0_arr.shape[0] == 6:
+        st_param_size = 4
+        mt_param_size = 2
+    elif x0_arr.shape[0] == 10:
+        st_param_size = 6
+        mt_param_size = 4
+    
+    st_estPars = np.zeros((st_param_size, N_subs))
+    mt_estPars = np.zeros((mt_param_size, N_subs))
+    if 'flags' in output:
+        st_flags = []
+        mt_flags = []
+    if 'short' not in output:
+        st_hessians = np.zeros((st_param_size, st_param_size, N_subs))
+        mt_hessians = np.zeros((mt_param_size, mt_param_size, N_subs))
+    if 'long' in output:
+        st_iterParams_df = pd.DataFrame()
+        mt_iterParams_df = pd.DataFrame()
+    
+    if plot_behaviour:
+        subject_choiceCount_df = pd.DataFrame()
+    
+    for i in tqdm(range(N_subs)):
+        # Get parameters per participant
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        st_money_alpha = st_money_alpha_arr[i]
+        st_cPlus_alpha = st_cPlus_alpha_arr[i]
+        st_cMinus_alpha = st_cMinus_alpha_arr[i]
+        st_money_beta = st_money_beta_arr[i]
+        st_cPlus_beta = st_cPlus_beta_arr[i]
+        st_cMinus_beta = st_cMinus_beta_arr[i]
+        mt_cPlus_beta = mt_cPlus_beta_arr[i]
+        mt_cMinus_beta = mt_cMinus_beta_arr[i]
+        cPlus_sFactor = cPlus_sFactor_arr[i]
+        cMinus_sFactor = cMinus_sFactor_arr[i]
+        
+        # simulate subject behaviour
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        subjectTrials_df = pack_subjectParameters(st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+                                                    st_money_beta, st_cPlus_beta, st_cMinus_beta, 
+                                                    mt_cPlus_beta, mt_cMinus_beta, 
+                                                    cPlus_sFactor, cMinus_sFactor, 
+                                                    allTrials_df)
+
+        # Pack initial estimates and fit model
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        x0_ = x0_arr[:,i]
+        res_st, res_mt, _st_iterParams_df, _mt_iterParams_df = necon.stepwise_estimate(subjectTrials_df, x0_)
+        
+        # prepare plot
+        # ¨¨¨¨¨¨¨¨¨¨¨¨
+        if plot_behaviour:
+            # Compute Probability of chossing lottery per subject
+            _subject_choiceCount_df = pd.DataFrame(subjectTrials_df[beahviour_cols].groupby(
+                            list(subjectTrials_df[beahviour_cols].columns[:-1])
+                            ).apply(
+                        lambda df: necon.get_probLottery(df)), 
+                        columns = [_v_.probLotteryChoice_colName]).reset_index()
+            _subject_choiceCount_df['n_sub'] = i
+
+            subject_choiceCount_df = pd.concat([subject_choiceCount_df, _subject_choiceCount_df], axis = 0)
+
+        # Prepare OUTPUTS
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        st_estPars[:, i] = res_st.x
+        mt_estPars[:, i] = res_mt.x
+
+        if 'flags' in output:
+            st_flags.append(res_st.message)
+            mt_flags.append(res_mt.message)
+
+        if 'short' not in output:
+            st_hessians[:, :, i] = res_st.hess_inv
+            mt_hessians[:, :, i] = res_mt.hess_inv
+
+        if 'long' in output:
+            _st_iterParams_df = _st_iterParams_df.reset_index().rename(columns={'index':'iter'},)
+            _st_iterParams_df['n_sub'] = i
+            
+            _mt_iterParams_df = _mt_iterParams_df.reset_index().rename(columns={'index':'iter'},)
+            _mt_iterParams_df['n_sub'] = i
+
+            st_iterParams_df = pd.concat([st_iterParams_df, _st_iterParams_df], axis = 0)
+            mt_iterParams_df = pd.concat([mt_iterParams_df, _mt_iterParams_df], axis = 0)
+    # ---------------------------------------------------------------------------
+    # Pack outputs
+    if output == 'short':
+        out_vars = (st_estPars, mt_estPars)
+    elif output == 'short_flags':
+        out_vars = (st_estPars, mt_estPars, st_flags, mt_flags)
+    elif output == 'medium':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians)
+    elif output == 'medium_flags':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians, st_flags, mt_flags)
+    elif output == 'long':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians, st_iterParams_df, mt_iterParams_df)
+    elif output == 'long_flags':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians, st_iterParams_df, mt_iterParams_df, st_flags, mt_flags)
+
+    if plot_behaviour:
+        out_vars += (subject_choiceCount_df,)
+    return out_vars
+
+
+
+def _simNsubsfit_MultiOpt(allTrials_df, N_subs, x0, 
+                                 st_money_alpha_arr, st_cPlus_alpha_arr, st_cMinus_alpha_arr,
+                                 st_money_beta_arr, st_cPlus_beta_arr, st_cMinus_beta_arr,
+                                 mt_cPlus_beta_arr, mt_cMinus_beta_arr, 
+                                 cPlus_sFactor_arr, cMinus_sFactor_arr,
+                                 N_optimizers = 50,
+                                 plot_behaviour = True, output = 'long_flags'):
+
+    # ---------------------------------------------------------------------------
+    # Prelocate mememory and/or create variables for outputs
+    
+    if len(x0) == 6:
+        st_param_size = 4
+        mt_param_size = 2
+    elif len(x0) == 10:
+        st_param_size = 6
+        mt_param_size = 4
+    
+    st_estPars = np.zeros((st_param_size, N_subs))
+    mt_estPars = np.zeros((mt_param_size, N_subs))
+    if 'flags' in output:
+        st_flags = []
+        mt_flags = []
+    if 'short' not in output:
+        st_hessians = np.zeros((st_param_size, st_param_size, N_subs))
+        mt_hessians = np.zeros((mt_param_size, mt_param_size, N_subs))
+    if 'long' in output:
+        st_iterParams_df = pd.DataFrame()
+        mt_iterParams_df = pd.DataFrame()
+    
+    if plot_behaviour:
+        subject_choiceCount_df = pd.DataFrame()
+    
+    for i in tqdm(range(N_subs)):
+        # Get parameters per participant
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        st_money_alpha = st_money_alpha_arr[i]
+        st_cPlus_alpha = st_cPlus_alpha_arr[i]
+        st_cMinus_alpha = st_cMinus_alpha_arr[i]
+        st_money_beta = st_money_beta_arr[i]
+        st_cPlus_beta = st_cPlus_beta_arr[i]
+        st_cMinus_beta = st_cMinus_beta_arr[i]
+        mt_cPlus_beta = mt_cPlus_beta_arr[i]
+        mt_cMinus_beta = mt_cMinus_beta_arr[i]
+        cPlus_sFactor = cPlus_sFactor_arr[i]
+        cMinus_sFactor = cMinus_sFactor_arr[i]
+        
+        # simulate subject behaviour
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        subjectTrials_df = pack_subjectParameters(st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+                                                    st_money_beta, st_cPlus_beta, st_cMinus_beta, 
+                                                    mt_cPlus_beta, mt_cMinus_beta, 
+                                                    cPlus_sFactor, cMinus_sFactor, 
+                                                    allTrials_df)
+
+        # Pack initial estimates and fit model
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        res_st, res_mt, _st_iterParams_df, _mt_iterParams_df = necon.stepwise_estimate_MultiOpt(subjectTrials_df, x0, N_optimizers)
+        
+        # prepare plot
+        # ¨¨¨¨¨¨¨¨¨¨¨¨
+        if plot_behaviour:
+            # Compute Probability of chossing lottery per subject
+            _subject_choiceCount_df = pd.DataFrame(subjectTrials_df[beahviour_cols].groupby(
+                            list(subjectTrials_df[beahviour_cols].columns[:-1])
+                            ).apply(
+                        lambda df: necon.get_probLottery(df)), 
+                        columns = [_v_.probLotteryChoice_colName]).reset_index()
+            _subject_choiceCount_df['n_sub'] = i
+
+            subject_choiceCount_df = pd.concat([subject_choiceCount_df, _subject_choiceCount_df], axis = 0)
+
+        # Prepare OUTPUTS
+        # ¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨
+        st_estPars[:, i] = res_st.x
+        mt_estPars[:, i] = res_mt.x
+
+        if 'flags' in output:
+            st_flags.append(res_st.message)
+            mt_flags.append(res_mt.message)
+
+        if 'short' not in output:
+            st_hessians[:, :, i] = res_st.hess_inv
+            mt_hessians[:, :, i] = res_mt.hess_inv
+
+        if 'long' in output:
+            _st_iterParams_df = _st_iterParams_df.reset_index().rename(columns={'index':'iter'},)
+            _st_iterParams_df['n_sub'] = i
+            
+            _mt_iterParams_df = _mt_iterParams_df.reset_index().rename(columns={'index':'iter'},)
+            _mt_iterParams_df['n_sub'] = i
+
+            st_iterParams_df = pd.concat([st_iterParams_df, _st_iterParams_df], axis = 0)
+            mt_iterParams_df = pd.concat([mt_iterParams_df, _mt_iterParams_df], axis = 0)
+    # ---------------------------------------------------------------------------
+    # Pack outputs
+    if output == 'short':
+        out_vars = (st_estPars, mt_estPars)
+    elif output == 'short_flags':
+        out_vars = (st_estPars, mt_estPars, st_flags, mt_flags)
+    elif output == 'medium':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians)
+    elif output == 'medium_flags':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians, st_flags, mt_flags)
+    elif output == 'long':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians, st_iterParams_df, mt_iterParams_df)
+    elif output == 'long_flags':
+        out_vars = (st_estPars, mt_estPars, st_hessians, mt_hessians, st_iterParams_df, mt_iterParams_df, st_flags, mt_flags)
+
+    if plot_behaviour:
+        out_vars += (subject_choiceCount_df,)
+    return out_vars
+
+
+def simANDfit_multiParticipants(allTrials_df, N_subs, x0, 
+                                 mean_std_st_money_alpha, mean_std_st_cPlus_alpha, mean_std_st_cMinus_alpha,
+                                 mean_std_st_money_beta, mean_std_st_cPlus_beta, mean_std_st_cMinus_beta,
+                                 mean_std_mt_cPlus_beta, mean_std_mt_cMinus_beta, 
+                                 mean_std_cPlus_sFactor, mean_std_cMinus_sFactor,
+                                 N_optimizers = 10,
+                                 plot_behaviour = True, startFromBehaviour = False,
+                                 output = 'long_flags'):
+
+    # ---------------------------------------------------------------------------
+    # Create array of parameters used for behaviour simulation
+
+    st_money_alpha_arr = abs(np.random.normal(*mean_std_st_money_alpha, N_subs))
+    st_cPlus_alpha_arr = abs(np.random.normal(*mean_std_st_cPlus_alpha, N_subs))
+    st_cMinus_alpha_arr = abs(np.random.normal(*mean_std_st_cMinus_alpha, N_subs))
+    st_money_beta_arr = abs(np.random.normal(*mean_std_st_money_beta, N_subs))
+
+    cPlus_sFactor_arr = abs(np.random.normal(*mean_std_cPlus_sFactor, N_subs))
+    cMinus_sFactor_arr = abs(np.random.normal(*mean_std_cMinus_sFactor, N_subs))
+
+    if len(x0) == 6:
+        #model_type = '3 alphas, 1 beta and 2 sFactors'
+        st_cPlus_beta_arr = st_money_beta_arr
+        st_cMinus_beta_arr = st_money_beta_arr
+        mt_cPlus_beta_arr = st_money_beta_arr
+        mt_cMinus_beta_arr = st_money_beta_arr
+        
+        # pack parameters
+        st_pars = np.stack([st_money_alpha_arr, st_cPlus_alpha_arr, st_cMinus_alpha_arr,
+                        st_money_beta_arr,] )
+        mt_pars = np.stack([cPlus_sFactor_arr, cMinus_sFactor_arr])
+
+    else:
+        # model_type = '3 alphas, 5 beta and 2 sFactors'    
+        st_cPlus_beta_arr = abs(np.random.normal(*mean_std_st_cPlus_beta, N_subs))
+        st_cMinus_beta_arr = abs(np.random.normal(*mean_std_st_cMinus_beta, N_subs))
+        mt_cPlus_beta_arr = abs(np.random.normal(*mean_std_mt_cPlus_beta, N_subs))
+        mt_cMinus_beta_arr = abs(np.random.normal(*mean_std_mt_cMinus_beta, N_subs))
+        # pack parameters
+        st_pars = np.stack([st_money_alpha_arr, st_cPlus_alpha_arr, st_cMinus_alpha_arr,
+                        st_money_beta_arr, st_cPlus_beta_arr, st_cMinus_beta_arr,
+                        ] )
+        mt_pars = np.stack([mt_cPlus_beta_arr, mt_cMinus_beta_arr,
+                            cPlus_sFactor_arr, cMinus_sFactor_arr])
+    
+    # ---------------------------------------------------------------------------
+    # Start Loop
+    warnings.filterwarnings("ignore")#, category=RuntimeWarning)       # Ignore Optimization Warnings
+
+    try:
+        len(x0[0])>1
+        # Run multiple optimizers (minRange, maxRange, N_optimizers)
+        print('Running {} optimizers per subject with random initial estimates'.format(N_optimizers))
+        out_vars = _simNsubsfit_MultiOpt(allTrials_df, N_subs, x0, 
+                                 st_money_alpha_arr, st_cPlus_alpha_arr, st_cMinus_alpha_arr,
+                                 st_money_beta_arr, st_cPlus_beta_arr, st_cMinus_beta_arr,
+                                 mt_cPlus_beta_arr, mt_cMinus_beta_arr, 
+                                 cPlus_sFactor_arr, cMinus_sFactor_arr,
+                                 N_optimizers = N_optimizers,
+                                 plot_behaviour = True, output = 'long_flags')
+    except TypeError:
+        if startFromBehaviour:
+            x0_arr = np.concatenate([st_pars, mt_pars])
+            print('Starting optimization from true parameters')
+        else:
+            print('Starting optimization with fixed values as initial estimates')
+            x0_arr = np.repeat(np.expand_dims(np.array(x0), 1), N_subs, axis =1)
+
+        # Fit model with one optimizer
+        out_vars = _simNsubsfit_oneOptimizer(allTrials_df, N_subs, x0_arr, 
+                                 st_money_alpha_arr, st_cPlus_alpha_arr, st_cMinus_alpha_arr,
+                                 st_money_beta_arr, st_cPlus_beta_arr, st_cMinus_beta_arr,
+                                 mt_cPlus_beta_arr, mt_cMinus_beta_arr, 
+                                 cPlus_sFactor_arr, cMinus_sFactor_arr,
+                                 plot_behaviour = True, output = 'long_flags')
+        
+    out_vars = (st_pars, mt_pars, ) + out_vars
+    
+    # ---------------------------------------------------------------------------
+    # Plot Behaviour if requested
+    if plot_behaviour:
+        subject_choiceCount_df = out_vars[-1]
+        out_vars = out_vars[:-1]
+        sns.set(font_scale=1.5)
+        # CREATE FUNTION IN PLOTS FOR THIS!!
+        # Throwing a depreciation warning that I want to filter
+        g = sns.relplot(
+            data=subject_choiceCount_df.reset_index(drop=True), x=beahviour_cols[-3], y=_v_.probLotteryChoice_colName, 
+            col=beahviour_cols[-4], row = beahviour_cols[0],
+            hue=beahviour_cols[-2], style=beahviour_cols[-2], kind="line",facet_kws={'sharex': False, 'margin_titles' : True},
+        )
+        g.fig.suptitle('Behaviour across simulated subjects\nmean and 95%CI (N={})'.format(N_subs), va='bottom');
+    
+    warnings.filterwarnings("always")#, category=RuntimeWarning)        # Turn Warnings back on
+    
+    # ---------------------------------------------------------------------------
+
+    return out_vars

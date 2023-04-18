@@ -42,6 +42,8 @@ def _assign_group(row, subID_col = 'User'):
     sub_id = row[subID_col]
     if sub_id in cohort1:
         label = 'cohort 1'
+    elif 'MoneyTest' in sub_id:
+        label = 'Money Test'
     else:
         label = 'cohort 2'
     return label

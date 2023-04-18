@@ -1,5 +1,6 @@
 
 import numpy as np
+import random 
 import pandas as pd
 from scipy.optimize import minimize
 
@@ -15,6 +16,13 @@ optimize_cols = ['trial_type',
               'choice',
               'ref_alpha_est', 'lott_alpha_est', 'beta_est',
               'sFactor_est']
+
+def get_probLottery(group):
+  '''
+  Missed Trials should be removed and choices should be coded as 0 and 1 (reference and lottery, respectly)
+  '''
+  prob_lotteryChoice = len(group[group['choice'] == 1]) / len(group)
+  return prob_lotteryChoice
 
 # %%_____________________ EU and Lottery probability ________________________
 # ===========================================================================
@@ -338,6 +346,77 @@ def stepwise_estimate(args, x0):
   mt_iterParams_df = pd.DataFrame(iter_params_list, columns=mt_params_colNames)
   
 
+  return res_st, res_mt, st_iterParams_df, mt_iterParams_df
+
+def stepwise_estimate_MultiOpt(args, x0, N_optimizers):
+
+  def _get_iter_params(xk):
+    iter_params_list.append(xk.tolist())  
+  df = args
+  st_mask = df[optimize_cols[0]] == 'same'
+  mt_mask = df[optimize_cols[0]] == 'mixed'
+
+  cPlus_mask = df[optimize_cols[4]] == 'CS+'
+  cMinus_mask = df[optimize_cols[4]] == 'CS-'
+
+  # Unpack initialization parameters
+  if len(x0) == 6:
+    (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+        beta,
+        cPlus_sFactor, cMinus_sFactor) = x0
+    st_params = (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+                beta)
+    mt_params = (cPlus_sFactor, cMinus_sFactor)
+    st_params_colNames = ['Money alpha', 'CS+ alpha', 'CS- alpha', 
+                          'beta']
+    mt_params_colNames = ['CS+ sFactor', 'CS- sFactor']
+  elif len(x0) == 10:
+    (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+        st_money_beta, st_cPlus_beta, st_cMinus_beta,
+        mt_cPlus_beta, mt_cMinus_beta,
+        cPlus_sFactor, cMinus_sFactor) = x0
+    st_params = (st_money_alpha, st_cPlus_alpha, st_cMinus_alpha, 
+                st_money_beta, st_cPlus_beta, st_cMinus_beta)
+    mt_params = (mt_cPlus_beta, mt_cMinus_beta,
+                cPlus_sFactor, cMinus_sFactor)
+    st_params_colNames = ['Money alpha', 'CS+ alpha', 'CS- alpha', 
+                          'Money beta', 'CS+ st beta', 'CS- st beta', ]
+    mt_params_colNames = ['CS+ mt beta', 'CS- mt beta',
+                          'CS+ sFactor', 'CS- sFactor']
+
+  for n_opt in range(N_optimizers):
+    x0_st_params = tuple([random.uniform(*pars) for pars in st_params])
+    # Estimate parameters from Same type trials
+    iter_params_list = []
+    res_st_ = minimize(_get_st_negLogLikelihood, x0_st_params, args=df.loc[st_mask,:],
+                      callback=_get_iter_params)
+    if n_opt == 0:
+      res_st = res_st_
+    else:
+      if res_st_.fun < res_st.fun:
+        res_st = res_st_
+    
+  st_iterParams_df = pd.DataFrame(iter_params_list, columns=st_params_colNames)
+    
+  # map same type estimation results to required fields
+  df.loc[mt_mask, optimize_cols[8]] = res_st.x[0]                 # Money alpha
+  df.loc[mt_mask & cPlus_mask, optimize_cols[9]] = res_st.x[1]    # CS+ alpha
+  df.loc[mt_mask & cMinus_mask, optimize_cols[9]] = res_st.x[2]   # CS- alpha
+  if len(x0) == 6:
+    df.loc[mt_mask, optimize_cols[10]] = res_st.x[3]              # beta
+  for n_opt in range(N_optimizers):
+    x0_mt_params = tuple([random.uniform(*pars) for pars in mt_params])
+    # Estimate parameters from mixed type trials
+    iter_params_list = []
+    res_mt_ = minimize(_get_mt_negLogLikelihood, x0_mt_params, args=df.loc[mt_mask,:],
+                      callback=_get_iter_params)
+    if n_opt == 0:
+      res_mt = res_mt_
+    else:
+      if res_mt_.fun < res_st.fun:
+        res_mt = res_mt_
+  mt_iterParams_df = pd.DataFrame(iter_params_list, columns=mt_params_colNames)
+  
   return res_st, res_mt, st_iterParams_df, mt_iterParams_df
 
 # %%_________________________ Output fit results ____________________________
