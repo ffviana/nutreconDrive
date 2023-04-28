@@ -29,10 +29,15 @@ def get_probLottery(group):
 
 def _calculate_EU(p,X, alpha, optimize = False):
   
+  # if optimize:
+  #   pass
+    # alpha = np.arctan(alpha)
   return p * X**alpha
 
 def _calculate_pL(euL, euR, beta, sFactor, optimize = False):
-
+  # if optimize:
+  #   pass
+    # beta = np.arctan(beta)
   return 1 - 1/(1 + np.exp(beta * (euL * sFactor - euR)))
 
 # %%_______________________ Likelihood computation __________________________
@@ -114,15 +119,15 @@ def _get_likelihood(row, params, cols = optimize_cols, optimize = False):
   ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha, optimize)
   # Calculate lottery EU
   lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha, optimize)
-  # Calculate probability of choosing lottery
-  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor, optimize)
-  # 0 - chosing the reference option; 1 - chosing the lottery option;
-  if choice == 1:
-    likelihood = pL
-  else:
-    likelihood = 1 - pL
 
-  return likelihood
+  # Calculate Neg Log Likelihood as Jaime
+  y = beta*(ref_EU - sFactor*lott_EU)
+  nll_v = np.log(1 + np.exp(y))
+  # 0 - chosing the reference option; 1 - chosing the lottery option;
+  if choice == False:
+    nll_v = nll_v - y
+  
+  return nll_v
 
 def _get_st_likelihood(row, params, cols = optimize_cols, optimize = False):
 
@@ -176,15 +181,14 @@ def _get_st_likelihood(row, params, cols = optimize_cols, optimize = False):
   # Calculate lottery EU
   lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha, optimize)
   
-  # Calculate probability of choosing lottery
-  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor, optimize)
+  # Calculate Neg Log Likelihood as Jaime
+  y = beta*(ref_EU - sFactor*lott_EU)
+  nll_v = np.log(1 + np.exp(y))
   # 0 - chosing the reference option; 1 - chosing the lottery option;
-  if choice == 1:
-    likelihood = pL
-  else:
-    likelihood = 1 - pL
+  if choice == False:
+    nll_v = nll_v - y
 
-  return likelihood
+  return nll_v
 
 def _get_mt_likelihood(row, params, cols = optimize_cols, optimize = False):
 
@@ -235,15 +239,15 @@ def _get_mt_likelihood(row, params, cols = optimize_cols, optimize = False):
   ref_EU = _calculate_EU(row[refP_col], row[refQ_col], ref_alpha, optimize)
   # Calculate lottery EU
   lott_EU = _calculate_EU(row[lottP_col], row[lottQ_col], lott_alpha, optimize)
-  # Calculate probability of choosing lottery
-  pL = _calculate_pL(lott_EU, ref_EU, beta, sFactor, optimize)
-  # 0 - chosing the reference option; 1 - chosing the lottery option;
-  if choice == 1:
-    likelihood = pL
-  else:
-    likelihood = 1 - pL
   
-  return likelihood
+  # Calculate Neg Log Likelihood as Jaime
+  y = beta*(ref_EU - sFactor*lott_EU)
+  nll_v = np.log(1 + np.exp(y))
+  # 0 - chosing the reference option; 1 - chosing the lottery option;
+  if choice == False:
+    nll_v = nll_v - y
+  
+  return nll_v
 
 # %%_________________ Negative LogLikelihood computation ____________________
 # ===========================================================================
@@ -253,10 +257,10 @@ def _get_mt_likelihood(row, params, cols = optimize_cols, optimize = False):
 def _get_negLogLikelihood(params, args):
 
   df = args
-  # compute likelihood of each choice
-  likelihood = df.apply(lambda row: _get_likelihood(row, params, optimize=True), axis=1).values
-  # Take negative of logLikelihood for convention
-  negloglikelihood = - np.sum(np.log(likelihood))
+  # compute nll of each choice
+  nll = df.apply(lambda row: _get_likelihood(row, params, optimize=True), axis=1).values
+  # calculating as Jaime
+  negloglikelihood = np.sum(nll)
   return negloglikelihood
 
 def _get_st_negLogLikelihood(params, args):
@@ -271,10 +275,10 @@ def _get_st_negLogLikelihood(params, args):
 def _get_mt_negLogLikelihood(params, args):
 
   df = args
-  # compute likelihood of each choice
-  likelihood = df.apply(lambda row: _get_mt_likelihood(row, params, optimize=True), axis=1).values
+  # compute nll of each choice
+  nll = df.apply(lambda row: _get_mt_likelihood(row, params, optimize=True), axis=1).values
   # Take negative of logLikelihood for convention
-  negloglikelihood = - np.sum(np.log(likelihood))
+  negloglikelihood = np.sum(nll)
   return negloglikelihood
 
 # Model Estimation
