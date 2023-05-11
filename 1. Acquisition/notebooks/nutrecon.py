@@ -93,6 +93,7 @@ def save_json(df, subject_code, section_fileID, data_path):
       df.index.name = _v_.assocTestOrder2_colName
     elif section_fileID == _v_.assoc3_order_fileID:
       df.index.name = _v_.assocTestOrder3_colName
+    df.rename(columns={'image_id':_v_.shapeID_colName, 'image': _v_.shapeName_colName}, inplace = True)
   else:
     df.to_json(fpath, orient = 'index')
   return df
@@ -117,6 +118,7 @@ def loadResponses(folder, file_identifier, Subject_code):
     else:
       fpath = files[0]
     df = pd.read_json(fpath)
+    df.rename(columns={'image_id':_v_.shapeID_colName, 'image': _v_.shapeName_colName}, inplace = True)
   else:
     print('No file found for this subject.')
     df = None
@@ -185,11 +187,11 @@ def check_atest(report, flavorImage_code, min_correctResp = 4):
   report_df['criteria'] = np.where(report_df['precision'] >= min_correctResp / report_df['support'], 'in compliance', 'not in compliance' )
   report_df = report_df.sort_values(by=['criteria', 'f1-score'], ascending = False)
   
-  report_df = report_df.rename_axis(_v_.imageID_colName).reset_index()
-  report_df[_v_.flavorName_colName] = report_df[_v_.imageID_colName].replace(flavorImage_code)
+  report_df = report_df.rename_axis(_v_.shapeID_colName).reset_index()
+  report_df[_v_.flavorName_colName] = report_df[_v_.shapeID_colName].replace(flavorImage_code)
   report_df[_v_.flavorID_colName] = report_df[_v_.flavorName_colName].replace(_v_.flavorCodes)
   
-  report_df = report_df.set_index(['criteria', _v_.imageID_colName, _v_.flavorID_colName]).drop(columns = 'support')
+  report_df = report_df.set_index(['criteria', _v_.shapeID_colName, _v_.flavorID_colName]).drop(columns = 'support')
   report_df = pd.concat([report_df[~report_df.index.get_level_values(0).str.contains('not')], report_df[report_df.index.get_level_values(0).str.contains('not')]])
   
   return report_df
@@ -245,7 +247,7 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
 
     blocks = []
     # each lotery option is repeated 6 times (in the whole task)
-    n_Lott_reps = 6
+    
     if mixed_blocks:
       mixed_blocks_df = pd.concat([same_df, mixed_df]).sample(frac = 1).reset_index(drop=True)
       split_df = np.array_split(mixed_blocks_df, 2)

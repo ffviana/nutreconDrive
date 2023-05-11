@@ -71,11 +71,13 @@ class Vars:
 
   orders_id = '_presOrder_'
   pres_order_fileID = 'day1_presOrder'
+  pres_order_d1_2_fileID = 'day1_2_presOrder'
   pres_order_d2_fileID = 'day2_presOrder'
   pres_order_d3_fileID = 'day3_presOrder'
 
   ratings_fileID = '_ratings_'
   flav_ratings_fileID = 'day1_rating'
+  flav_ratings_d1_2_fileID = 'day1_2_rating'
   flav_ratings_d2_fileID = 'day2_rating'
   flav_ratings_d3_fileID = 'day3_rating'
 
