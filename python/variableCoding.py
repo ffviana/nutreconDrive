@@ -69,17 +69,17 @@ class Vars:
   flavorName_colName = 'Flavor'
   flavorID_colName = 'flavor_id'
 
-  orders_id = '_presOrder_'
-  pres_order_fileID = 'day1_presOrder'
-  pres_order_d1_2_fileID = 'day1_2_presOrder'
-  pres_order_d2_fileID = 'day2_presOrder'
-  pres_order_d3_fileID = 'day3_presOrder'
+  pres_order_fileID = 'presOrder'
+  pres_order_d1_fileID = 'day1_{}'.format(pres_order_fileID)
+  pres_order_d1_2_fileID = 'day1_{}2'.format(pres_order_fileID)
+  pres_order_d2_fileID = 'day2_{}'.format(pres_order_fileID)
+  pres_order_d3_fileID = 'day3_{}'.format(pres_order_fileID)
 
-  ratings_fileID = '_ratings_'
-  flav_ratings_fileID = 'day1_rating'
-  flav_ratings_d1_2_fileID = 'day1_2_rating'
-  flav_ratings_d2_fileID = 'day2_rating'
-  flav_ratings_d3_fileID = 'day3_rating'
+  ratings_fileID = 'ratings'
+  flav_ratings_fileID = 'day1_{}'.format(ratings_fileID)
+  flav_ratings_d1_2_fileID = 'day1_{}2'.format(ratings_fileID)
+  flav_ratings_d2_fileID = 'day2_{}'.format(ratings_fileID)
+  flav_ratings_d3_fileID = 'day3_{}'.format(ratings_fileID)
 
   intensity_colName = 'intensity'
   novelty_colName = 'novelty'
@@ -94,45 +94,45 @@ class Vars:
   # imageID_colName = 'shape_id'
   # imageRomanID_colName = 'shapeRoman_id'
 
-  associaitonTest_fileID = '_atest_'
-  associaitonOrder_fileID = '_atestOrder_'
+  associaitonTest_fileID = 'atest'
+  associaitonOrder_fileID = 'atestOrder'
 
   assocTestOrder1_colName = 'Day 1 - Association Test order'
-  assoc1_fileID = 'day1_atest'
-  assoc1_order_fileID = 'day1_atestOrder'
+  assoc1_fileID = 'day1_{}'.format(associaitonTest_fileID)
+  assoc1_order_fileID = 'day1_{}'.format(associaitonOrder_fileID)
 
   assocTestOrder2_colName = 'Day 2 - Association Test order'
-  assoc2_fileID = 'day2_atest'
-  assoc2_order_fileID = 'day2_atestOrder'
+  assoc2_fileID = 'day2_{}'.format(associaitonTest_fileID)
+  assoc2_order_fileID = 'day2_{}'.format(associaitonOrder_fileID)
 
   assocTestOrder3_colName = 'Day 3 - Association Test order'
-  assoc3_fileID = 'day3_atest'
-  assoc3_order_fileID = 'day3_atestOrder'
+  assoc3_fileID = 'day3_{}'.format(associaitonTest_fileID)
+  assoc3_order_fileID = 'day3_{}'.format(associaitonOrder_fileID)
 
-  conditioning_order_fileID = '_condOrder_'
+  conditioning_order_fileID = 'condOrder'
   conditioning_order_colName = 'Conditioning Order'
 
+  neuroEcon_id = 'neuroEcon'
   # files containing the order of the trials in the neuroeconomics task performed at day 2 and 3
-  neuroEconOrder0_fileID = 'day1_neuroEconOrder'
-  neuroEconOrder1_fileID = 'day2_neuroEconOrder'
-  neuroEconOrder2_fileID = 'day3_neuroEconOrder'
+  neuroEconOrder0_fileID = 'day1_{}Order'.format(neuroEcon_id)
+  neuroEconOrder1_fileID = 'day2_{}Order'.format(neuroEcon_id)
+  neuroEconOrder2_fileID = 'day3_{}Order'.format(neuroEcon_id)
   
   # files containing the users' responses to the neuroeconomics task
-  neuroEcon_id = '_neuroEcon_'
-  neuroEcon_d1_responses_fileID = 'day1_neuroEcon'
-  neuroEcon_d2_responses_fileID = 'day2_neuroEcon'
-  neuroEcon_d3_responses_fileID = 'day3_neuroEcon'
+  neuroEcon_d1_responses_fileID = 'day1_{}'.format(neuroEcon_id)
+  neuroEcon_d2_responses_fileID = 'day2_{}'.format(neuroEcon_id)
+  neuroEcon_d3_responses_fileID = 'day3_{}'.format(neuroEcon_id)
 
   # trials that were actually realized after the task was completed
-  neurEconRealization_d1_fileID = 'day1_neurEconRealization'
-  neurEconRealization_d2_fileID = 'day2_neurEconRealization'
-  neurEconRealization_d3_fileID = 'day3_neurEconRealization'
+  neurEconRealization_d1_fileID = 'day1_{}Realization'.format(neuroEcon_id)
+  neurEconRealization_d2_fileID = 'day2_{}Realization'.format(neuroEcon_id)
+  neurEconRealization_d3_fileID = 'day3_{}Realization'.format(neuroEcon_id)
 
   # Probability of choosing Lottery colName
   probLotteryChoice_colName = 'Prob. of choosing lottery'
 
   # files containing users' responses to Taste Strips
-  tasteStrips_fileID = '_tasteStrips_'
+  tasteStrips_fileID = 'tasteStrips'
   stripsOrder_colName = 'order_id'
   stripID_colName = 'strip_id'
   stripName_colName = 'strip'

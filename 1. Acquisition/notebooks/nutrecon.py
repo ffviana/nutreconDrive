@@ -62,7 +62,7 @@ def check_MatchingPattern(data_path, subject_code, section_fileID, ext = '.json'
 
   It returns the files that match the pattern, as well as a bool informing if files were found or not.
   '''
-  fileMatchingPattern = glob('{}{}*{}*{}'.format(data_path, subject_code, section_fileID, ext))
+  fileMatchingPattern = glob('{}{}*_{}_*{}'.format(data_path, subject_code, section_fileID, ext))
   if len(fileMatchingPattern) != 0:
     ans = True
   else:
@@ -77,13 +77,13 @@ def save_json(df, subject_code, section_fileID, data_path):
   otherwise, a new json file is created and the dataframe is returned.
   '''
   fpath = '{}{}_{}_{}.json'.format(data_path, subject_code, section_fileID, strTimestamp())
-  fileMatchingPattern = glob('{}{}*{}*.json'.format(data_path, subject_code, section_fileID))
+  fileMatchingPattern = glob('{}{}*_{}_*.json'.format(data_path, subject_code, section_fileID))
   
   if check_MatchingPattern(data_path, subject_code, section_fileID)[1]:
     timestamp = float(fileMatchingPattern[0][:-5].split('_')[-1])
     print('File already exists. Created on {}'.format(datetime.fromtimestamp(timestamp)))
     df = pd.read_json(fileMatchingPattern[0], orient = 'index')
-    if section_fileID == _v_.pres_order_fileID:
+    if _v_.pres_order_fileID in section_fileID:
       df.index.name = _v_.pres_order_colName
     elif section_fileID == _v_.learn_order_fileID:
       df.index.name = _v_.learningOrder_colName
@@ -229,17 +229,11 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
 
     df = pd.DataFrame(conditions, columns = ['Trial Type', 'reference type','reference qt','reference p', 'lottery type', 'lottery qt','lottery p'])
 
-    # different combinations for mixed type trials involving the C+ and C- flavours (low/med/high quantity and probability)
-    df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 40, .75, 'C-', 40, 0.75]   # Low-High / Low-High
-    df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 120, .13, 'C-', 120, .13]  # High-Low / High-Low
-    df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 40, .75, 'C-', 120, 0.13]  # Low-High / High-Low
-    df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 120, .13, 'C-', 40, .75]   # High-Low / Low-High
-    df.loc[len(df.index)] = ['mixed_yogurt', 'C+', 80, .5, 'C-', 80, 0.5]     # Med-Med / Med-Med
     df['Trial ID'] = np.arange(len(df))
-    df['reference flavor'] = df['reference type'].replace({'C+':cPlus_flavor, 'C-':cMinus_flavor, 'money':''})
-    df['reference shape'] = df['reference type'].replace({'C+':cPlus_shape, 'C-':cMinus_shape, 'money':''})
-    df['lottery flavor'] = df['lottery type'].replace({'C+':cPlus_flavor, 'C-':cMinus_flavor, 'money':''})
-    df['lottery shape'] = df['lottery type'].replace({'C+':cPlus_shape, 'C-':cMinus_shape, 'money':''})
+    df['reference flavor'] = df['reference type'].replace({'CS+':cPlus_flavor, 'CS-':cMinus_flavor, 'money':''})
+    df['reference shape'] = df['reference type'].replace({'CS+':cPlus_shape, 'CS-':cMinus_shape, 'money':''})
+    df['lottery flavor'] = df['lottery type'].replace({'CS+':cPlus_flavor, 'CS-':cMinus_flavor, 'money':''})
+    df['lottery shape'] = df['lottery type'].replace({'CS+':cPlus_shape, 'CS-':cMinus_shape, 'money':''})
 
     # create separate dataframes for same type and mixed type trials
     same_df = df[df['Trial Type'] == 'same']
@@ -250,7 +244,7 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
     
     if mixed_blocks:
       mixed_blocks_df = pd.concat([same_df, mixed_df]).sample(frac = 1).reset_index(drop=True)
-      split_df = np.array_split(mixed_blocks_df, 2)
+      split_df = np.array_split(mixed_blocks_df, 12)
       first_df = split_df[0]
       second_df = split_df[1]
     else:
@@ -265,7 +259,7 @@ def generate_NeuroeconomicsTrials(conditions, two_flavors, Subject_code, section
     
     df_final = pd.DataFrame()  # new empty dataframe
     block = 0
-    for b in blocks: # each block 
+    for b in split_df: # each block 
       df_tmp = pd.DataFrame(b, columns=same_df.columns)
       df_tmp.columns = same_df.columns
       df_tmp['block'] = block
