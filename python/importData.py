@@ -18,6 +18,11 @@ _v_ = Vars()
 
 # ---------------------------- EXCLUDED SUBJECTS ----------------------------
 
+# did not have 2 flavors above 0 pleasantness
+excluded_pleas = ['nutre021',
+                  'nutre027',
+]
+
 # did not comply with conditioning
 excluded_conditioning = [ 
                     ]
@@ -27,6 +32,7 @@ excluded_Diagnosis_Medication = [
                     'nutre012', # PEA
                     'nutre015', # Ansiedade
                     'nutre016', # Ansiedade de Depressão
+                    'nutre033', # glutamato Enxaqueca
                        ]
 
 # --------------------------------- COHORTS ---------------------------------
@@ -44,8 +50,10 @@ def _assign_group(row, subID_col = 'User'):
         label = 'cohort 1'
     elif 'MoneyTest' in sub_id:
         label = 'Money Test'
-    else:
+    elif int(sub_id[-2:]) <= 20:
         label = 'cohort 2'
+    else:
+        label = 'cohort 3'
     return label
 
 def _label_exclusions(row, subID_col = 'User'):
@@ -55,6 +63,8 @@ def _label_exclusions(row, subID_col = 'User'):
         label = 1
     elif sub_id in excluded_Diagnosis_Medication:
         label = 2
+    elif sub_id in excluded_pleas:
+        label = 3
     else:
         label = 0
     return label
@@ -72,16 +82,23 @@ def flavorRatings(responses_dataPath):
         # Build subject rating paths from subject code
         ratings_paths = glob('{}{}*{}*'.format(responses_dataPath, subject_code, _v_.ratings_fileID))
         for ratings_path in ratings_paths:
+            
             # Load ratings per day
             dayRating_df = pd.read_json(ratings_path)
             # Get presentation order path
             fpath, day, preOrder, timestamp =  ratings_path.split('_')
-            order_path = glob('{}_{}{}*'.format(fpath.replace('responses', 'sequences'), day, _v_.orders_id))[0]
+            rate_nr = ''
+            # Check if it is a 2nd rating of day 1
+            if '2' in preOrder:
+                rate_nr = '2'
+            order_path = glob('{}_{}_{}_*'.format(fpath.replace('responses', 'sequences'), day, _v_.pres_order_fileID + rate_nr))[0]
             # Load presentation order
             dayOrder_df = pd.read_json(order_path).T
             dayOrder_df['Trial'] = np.arange(len(dayOrder_df)) + 1
             # match presentation order and ratings
             dayRating_df = dayRating_df.merge(dayOrder_df[[_v_.flavorName_colName, _v_.flavorID_colName, 'Trial']], left_on = 'Trial', right_on = 'Trial') 
+            if '2' in preOrder:
+                dayRating_df['Day'] = 1.5
             if ratings_path == ratings_paths[0]:
                 subjectRatings_df = dayRating_df
             else: 
@@ -290,6 +307,8 @@ def nutreconTrials(responses_dataPath, subject_code_list = None):
         neuroEcon_paths = glob('{}{}*{}*'.format(responses_dataPath, subject_code, _v_.neuroEcon_id))
         for neuroEcon_path in neuroEcon_paths:
             dayNeuroEcon_df = pd.read_json(neuroEcon_path)
+            if 0 in dayNeuroEcon_df.columns:    # In this case,  
+               dayNeuroEcon_df = dayNeuroEcon_df.T
             if neuroEcon_path == neuroEcon_paths[0]:
                 sub_neuroEcon_df = dayNeuroEcon_df
             else:
@@ -300,7 +319,8 @@ def nutreconTrials(responses_dataPath, subject_code_list = None):
             all_neuroEcon_df = sub_neuroEcon_df
         else:
             all_neuroEcon_df = pd.concat([all_neuroEcon_df, sub_neuroEcon_df])
-
+    # try:
+    all_neuroEcon_df = all_neuroEcon_df.dropna(subset='User')   # Remove empty responses
     all_neuroEcon_df['Day'] = all_neuroEcon_df['Day'].apply(lambda day: int(day[-1]))
     all_neuroEcon_df.reset_index(inplace= True, drop=True)
     all_neuroEcon_df.drop_duplicates(inplace=True)
@@ -311,6 +331,8 @@ def nutreconTrials(responses_dataPath, subject_code_list = None):
                 lambda row: _get_reward_choice(row), axis = 1)
     all_neuroEcon_df['chosen option'] = all_neuroEcon_df.apply(
                     lambda row: _get_choice_side(row), axis = 1)
+    # except:
+    #     print('blabla')
     return all_neuroEcon_df
 
 # %%____________________________ Conditioning _______________________________
@@ -318,17 +340,13 @@ def nutreconTrials(responses_dataPath, subject_code_list = None):
 
 def get_conditionedFlavor(all_neuroEcon_df):
     # Get conditioned Flavors from NeuroEconomics Trials
-    df1 = all_neuroEcon_df[all_neuroEcon_df['Trial ID'] == 129].drop_duplicates(
-        subset='User')[['User', 'lottery flavor', 'lottery shape', 'lottery type']]
-    df1.columns = ['sub_id', _v_.flavorName_colName, 'shape', 'calorie']
-    df2 = all_neuroEcon_df[all_neuroEcon_df['Trial ID'] == 129].drop_duplicates(
-        subset='User')[['User', 'reference flavor', 'reference shape', 'reference type']]
-    df2.columns = ['sub_id', _v_.flavorName_colName, 'shape', 'calorie']
-    calorieCodes_df = pd.concat([df1, df2])
-    calorieCodes_df = calorieCodes_df.sort_values(by=['sub_id', 'calorie']).reset_index(drop=True)
-    calorieCodes_df.drop_duplicates(inplace=True)
+    columns = ['User', 'lottery flavor', 'lottery shape', 'lottery type']
+    iogurt_mask = all_neuroEcon_df['lottery type'] != 'money'
+    sameType_mask =  all_neuroEcon_df['Trial Type'] != 'same'
+    calorieCodes = all_neuroEcon_df.loc[iogurt_mask & sameType_mask, columns].drop_duplicates().reset_index(drop=True)
+    calorieCodes.columns = ['sub_id',  _v_.flavorName_colName, 'shape', 'calorie']
 
-    return calorieCodes_df
+    return calorieCodes
 
 # %%________________________ Taste Strip Ratings ____________________________
 # ===========================================================================
